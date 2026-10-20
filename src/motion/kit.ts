@@ -5,8 +5,43 @@ import type { Ratio } from "./types";
 // Families by name, never via var(): the exporter rasterises inline SVG outside the page, where an undefined CSS
 // variable invalidates the whole font-family and text falls back to serif. next/font registers these exact names,
 // and src/lib/export/fonts.ts registers them with Remotion so they're embedded into exported SVGs.
-export const FONT_SANS = "'Geist', ui-sans-serif, system-ui, sans-serif";
+export const FONT_SANS = "'Inter', ui-sans-serif, system-ui, sans-serif";
 export const FONT_MONO = "'Geist Mono', ui-monospace, monospace";
+
+// ---- Colour system (approved 2026-10-20; measured from 108 premium references, see out/Breeders-Premium-System.png).
+// Three canvases, two accents (one per component, on ~1–5% of the frame), two state colours. Hierarchy comes from the
+// three text greys, not from colour. Primary buttons are `button` (black; white on Ink).
+export const CANVAS = {
+  paper: { bg: "#FAFAF9", card: "#FFFFFF", line: "#EAEAEA", fill: "#F2F2F0", ink: "#111111", ink2: "#6B6B6B", ink3: "#A3A3A3", button: "#111111", onButton: "#FFFFFF" },
+  stone: { bg: "#F2F1EC", card: "#FFFFFF", line: "#E4E2DC", fill: "#EAE8E2", ink: "#111111", ink2: "#6B6B6B", ink3: "#A3A39E", button: "#111111", onButton: "#FFFFFF" },
+  ink: { bg: "#111111", card: "#1A1A1A", line: "#262626", fill: "#222222", ink: "#FFFFFF", ink2: "#9A9A9A", ink3: "#5A5A5A", button: "#FFFFFF", onButton: "#111111" },
+} as const;
+export const ACCENT = { orange: "#FF5A1F", blue: "#2F5FF5" } as const;
+export const STATE = { success: "#22C55E", error: "#E5484D" } as const;
+export type CanvasName = keyof typeof CANVAS;
+export type AccentName = keyof typeof ACCENT;
+export type SystemTokens = (typeof CANVAS)[CanvasName] & { accent: string; onAccent: string; success: string; error: string };
+
+// The four standard colourways every component ships, in this order (the first is the default look).
+export const LOOKS: { name: string; canvas: CanvasName; accent: AccentName }[] = [
+  { name: "Paper", canvas: "paper", accent: "orange" },
+  { name: "Paper Blue", canvas: "paper", accent: "blue" },
+  { name: "Stone", canvas: "stone", accent: "blue" },
+  { name: "Ink", canvas: "ink", accent: "orange" },
+];
+export const tokensFor = (canvas: CanvasName, accent: AccentName): SystemTokens => ({
+  ...CANVAS[canvas],
+  accent: ACCENT[accent],
+  onAccent: "#FFFFFF",
+  ...STATE,
+});
+// Builds a component's palettes from the standard looks. `map` turns system tokens into the component's own colour
+// props, so the Edit tab's colourway buttons are identical across the library.
+export const systemPalettes = (map: (t: SystemTokens) => Record<string, string>) =>
+  LOOKS.map((l) => {
+    const t = tokensFor(l.canvas, l.accent);
+    return { name: l.name, swatch: [t.bg, t.ink, t.accent], values: map(t) };
+  });
 
 // ---- Shape (spec §4). Use these instead of ad hoc numbers; multiply by `u`.
 // Radius: chip/bar ends 8, buttons and inputs 16, cards and tiles of 100px+ 32, hero objects 48.

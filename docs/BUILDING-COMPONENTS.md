@@ -35,53 +35,59 @@ Then add one import to your batch file, `src/motion/batches/<batch>.ts`, and app
      (including SVG `<radialGradient>`, `<linearGradient>`, `<filter>`, paths, strokes, `strokeDasharray`).
    - Not allowed: CSS `radial-gradient` / `conic-gradient`, `backdrop-filter`, `mix-blend-mode`,
      `text-shadow`, `background-clip: text`, external images and fonts.
-   - Make soft glows with SVG radial gradients, blurred shapes or box-shadow.
-   - Make gradient text with an SVG `<text>` filled by a `<linearGradient>`.
-5. **Fonts:** only `FONT_SANS` (Geist) and `FONT_MONO` (Geist Mono) from the kit. Display type uses weight 600–700
-   with -0.03 to -0.045em tracking. Secondary text uses weight 400 in a quieter colour. Never write
-   `var(--font-…)` in a component: exported SVG text can't resolve CSS variables and falls back to serif.
+5. **Fonts:** only `FONT_SANS` (Inter) and `FONT_MONO` (Geist Mono) from the kit; see the colour and type system below.
+   Never write `var(--font-…)` in a component: exported SVG text can't resolve CSS variables and falls back to serif.
 6. **Loop or hold.** Loops must end exactly where they start; `envelope()` helps. One-shot reveals ease in and
-   hold the final state for the last 25% or more. Use 60–180 frames at 30fps.
+   hold the final state. Durations are 120, 150 or 180 frames, and the last 12 are held still (see Shape and motion).
 7. **Deterministic, light and self-contained.** No network, no data fetching, no new npm packages. The grid plays
    dozens of these at once, so keep the DOM small: generally fewer than ~150 nodes, and fewer for 3D scenes.
 
-## The v2 look (approved 2026-10-20, see the Library v2 sheet)
+## Colour and type system (approved 2026-10-20)
 
-Taken from our approved films (Framer, Figma Motion, ClaudeFull, Pine) and the references we picked (Hairline UI,
-the context-window card, Wispr Flow, the OpenAI specimen). Premium means **restraint**: real UI, white space,
-crisp type, one colour doing one job.
+Measured from the 108 premium references in our collection (sheet: `E:/Breeders/out/Breeders-Premium-System.png`).
+Across those 108:
+- **0** sit on a gradient or wallpaper.
+- **73** use no accent colour or just one.
+- **89** use one Inter/SF-style grotesk.
 
-**Colour system**: use these values, not invented ones.
+Premium is **restraint**: neutral canvases, real UI, one small accent, hierarchy in grey.
 
-| Role | Colours |
-|---|---|
-| Canvas | White `#FFFFFF`, Paper `#FAFAF8`, Soft `#F2F2EF`, Cream `#F5F1E8` |
-| Dark (flat only) | Ink `#0E0F12`, Black `#000000` |
-| Flat blocks | Lavender `#C4B9FD`, Lime `#E3F79C`, Deep green `#0C5A2F`, Plum `#5B2A5E`, Blue `#2443FF`, Breeders `#0067FC`, Coral `#FF5A1F` |
-| UI | Selection `#0099FF` with `#E5F4FF` fill, hairline `#E8E8EC`, ink2 `#3B3D44`, sub `#7B7E87` |
+**Colour.** Use the kit's tokens: `CANVAS`, `ACCENT`, `STATE`, `tokensFor()`, `systemPalettes()`. Never write a hex in a
+component.
 
-**Rules**
-- **Canvas:** white, paper or cream. Dark only as flat ink or black.
-- **Colour:** one flat colour block or one accent per component.
-- **UI:** real product UI. White cards with hairline borders (`1px #E8E8EC`) and tiny shadows
-  (`0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)`). Figma-style selection boxes with size labels, and
-  name-tag cursors where they help.
-- **Type:** Geist. Large titles at weight 400–500 with -0.035 to -0.045em tracking (the Figma-film look).
-  Small UI labels at 13–16px equivalent are fine *inside* UI that is framed large.
-- **Scale:** the UI piece fills most of the frame (60–80% width at 16:9). Small UI floating in empty space reads
-  as a mockup.
-- **Motion:** calm and precise. Cursor-driven interactions, morphs, reflows and match cuts. Ease out softly.
+| Canvas | bg | card | line | fill | text (ink / ink2 / ink3) | button / onButton |
+|---|---|---|---|---|---|---|
+| `paper` (default) | #FAFAF9 | #FFFFFF | #EAEAEA | #F2F2F0 | #111111 / #6B6B6B / #A3A3A3 | #111111 / #FFFFFF |
+| `stone` | #F2F1EC | #FFFFFF | #E4E2DC | #EAE8E2 | #111111 / #6B6B6B / #A3A39E | #111111 / #FFFFFF |
+| `ink` | #111111 | #1A1A1A | #262626 | #222222 | #FFFFFF / #9A9A9A / #5A5A5A | #FFFFFF / #111111 |
+
+- **Accent:** `ACCENT.orange` #FF5A1F or `ACCENT.blue` #2F5FF5. Use **one** per component, on about 1–5% of the frame:
+  a button, a line, a dot, the active or selected state, the one key number.
+- **State:** `STATE.success` #22C55E and `STATE.error` #E5484D, for success and error states only.
+- **Primary buttons:** `button` (black; white on Ink), not the accent. Selection uses `fill`, a neutral grey.
+- **Surfaces:** a `card` on `bg` with a 1px `line` border and a near-invisible shadow
+  (`0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)`; none on Ink).
+- **Palettes:** every component ships exactly the four standard looks, `palettes: systemPalettes(t => ({ background:
+  t.bg, ... }))`: Paper, Paper Blue, Stone and Ink. `defaultProps` spreads the first.
 - **Never:**
-  - gold, amber or brass
-  - coloured glow fog or blurry colour blobs
-  - gradient app-icon tiles
-  - muddy tinted darks (brown, olive or teal-black)
-  - neon
-  - rainbow gradients
+  - gradients on UI, or glows of any kind
+  - gold, neon or rainbow
+  - more than one accent hue
+  - coloured canvases, wallpapers or photos as canvas
+  - colour used for hierarchy
+  - multi-colour avatars or charts. Data series are the accent plus greys: `ink`, `ink2`, `ink3`, `line`.
 
-**Palettes:** 3–5 per component, each one a coherent look from the system above. For example: white canvas plus
-Breeders accent; cream plus coral; a lavender block; a lime block; ink plus white. `values` sets **every** colour
-prop including `background`. `swatch` lists 2–4 representative colours.
+**Type.** `FONT_SANS` (Inter) for everything, `FONT_MONO` (Geist Mono) only for tiny labels and numerals.
+- **Weights:** 400 for headlines and body, 500 for labels and buttons, 600 for one key word or number. Nothing else.
+- **Case and tracking:** sentence case everywhere. Display sizes get tight tracking (-0.035 to -0.045em). Capitals
+  only on tiny mono labels with open tracking (+0.08 to +0.14em).
+- **Hierarchy:** grey steps `ink` → `ink2` → `ink3`. A two-tone line (ink + ink2) beats a colour highlight.
+- **Two size regimes:** small, quiet text with lots of space, or one big word or number. No mid-size shouting.
+- **Never:** serif, condensed or heavy caps, weight 700+, italics or emoji.
+
+**Scale and realism.**
+- The subject (a real-looking UI piece, chart or object) fills most of the frame: 60–80% of the width at 16:9.
+- Calm and precise motion, real interactions: cursor clicks, state changes, morphs.
 
 ## Shape and motion (approved 2026-10-20)
 

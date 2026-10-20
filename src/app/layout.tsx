@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
-// Geist stands in for Figma Sans (proprietary); see the design notes.
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
+// Inter is the house face (the premium references use an Inter/SF-style grotesk); the optical-size axis gives large
+// type its display cut automatically. Geist Mono is only for tiny labels and numbers.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", axes: ["opsz"] });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ const themeScript = `try{var t=localStorage.getItem("breeders-theme");if(t!=="li
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
