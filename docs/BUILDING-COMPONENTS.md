@@ -38,7 +38,8 @@ Then add one import to your batch file, `src/motion/batches/<batch>.ts`, and app
    - Make soft glows with SVG radial gradients, blurred shapes or box-shadow.
    - Make gradient text with an SVG `<text>` filled by a `<linearGradient>`.
 5. **Fonts:** only `FONT_SANS` (Geist) and `FONT_MONO` (Geist Mono) from the kit. Display type uses weight 600–700
-   with -0.03 to -0.045em tracking. Secondary text uses weight 400 in a quieter colour.
+   with -0.03 to -0.045em tracking. Secondary text uses weight 400 in a quieter colour. Never write
+   `var(--font-…)` in a component: exported SVG text can't resolve CSS variables and falls back to serif.
 6. **Loop or hold.** Loops must end exactly where they start; `envelope()` helps. One-shot reveals ease in and
    hold the final state for the last 25% or more. Use 60–180 frames at 30fps.
 7. **Deterministic, light and self-contained.** No network, no data fetching, no new npm packages. The grid plays

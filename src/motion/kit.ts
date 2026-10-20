@@ -2,9 +2,11 @@
 import { Easing, interpolate, useVideoConfig } from "remotion";
 import type { Ratio } from "./types";
 
-// Fonts come from next/font (see src/app/layout.tsx); the CSS variables exist in the preview and in browser export.
-export const FONT_SANS = "var(--font-geist-sans), 'Geist', ui-sans-serif, system-ui, sans-serif";
-export const FONT_MONO = "var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace";
+// Families by name, never via var(): the exporter rasterises inline SVG outside the page, where an undefined CSS
+// variable invalidates the whole font-family and text falls back to serif. next/font registers these exact names,
+// and src/lib/export/fonts.ts registers them with Remotion so they're embedded into exported SVGs.
+export const FONT_SANS = "'Geist', ui-sans-serif, system-ui, sans-serif";
+export const FONT_MONO = "'Geist Mono', ui-monospace, monospace";
 
 // Easing presets, named the way the Edit tab and prompts name them.
 export const EASES = {

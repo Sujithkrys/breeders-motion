@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SITE } from "@/lib/site";
 import "./globals.css";
 
 // Geist stands in for Figma Sans (proprietary); see the design notes.
@@ -7,6 +8,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url),
   title: { default: "Breeders — Motion components, ready to copy", template: "%s · Breeders" },
   description: "A free library of motion components. Copy the prompt, take the code, or edit and export it in your browser.",
 };
