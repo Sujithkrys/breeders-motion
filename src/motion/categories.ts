@@ -1,5 +1,6 @@
 // Library categories, in sidebar order. `icon` is a lucide-react icon name resolved by the sidebar.
 export const CATEGORIES = [
+  { id: "templates", label: "Templates", icon: "Clapperboard" },
   { id: "text", label: "Text", icon: "Type" },
   { id: "logo", label: "Logo reveals", icon: "Hexagon" },
   { id: "ui", label: "UI elements", icon: "LayoutPanelTop" },

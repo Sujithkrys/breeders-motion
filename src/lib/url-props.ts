@@ -30,12 +30,15 @@ const fromBase64Url = (raw: string) => {
   return new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0)));
 };
 
+// Uploads live only in this browser, so a shared link falls back to the sample image.
+const isLocalFile = (value: PropValue | undefined) => typeof value === "string" && /^(blob|data):/.test(value);
+
 // Returns "" when nothing differs from the defaults.
 export const encodeProps = (def: AnyMotionDef, props: MotionProps): string => {
   const defaults = def.defaultProps as MotionProps;
   const changed: MotionProps = {};
   for (const key of Object.keys(defaults)) {
-    if (key in props && !sameValue(props[key], defaults[key])) changed[key] = props[key];
+    if (key in props && !sameValue(props[key], defaults[key]) && !isLocalFile(props[key])) changed[key] = props[key];
   }
   return Object.keys(changed).length ? toBase64Url(JSON.stringify(changed)) : "";
 };
@@ -51,6 +54,8 @@ const acceptValue = (control: ControlDef | undefined, fallback: PropValue, value
   if (typeof value === "string") {
     if (control?.type === "select" && !control.options.some((o) => o.value === value)) return undefined;
     if (control?.type === "color" && !HEX_COLOR.test(value) && value !== "transparent") return undefined;
+    // Only bundled sample images are linkable; anything else could point the player at an outside URL.
+    if (control?.type === "image" && !value.startsWith("/templates/")) return undefined;
     if (control?.type === "text" && control.maxLength !== undefined) return value.slice(0, control.maxLength);
     return value.slice(0, 500);
   }

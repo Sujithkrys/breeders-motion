@@ -18,8 +18,11 @@ import { batch as v2f } from "./batches/v2-f";
 import { batch as newA } from "./batches/new-a";
 import { batch as newB } from "./batches/new-b";
 import { batch as newC } from "./batches/new-c";
+import { batch as tplA } from "./batches/templates-a";
+import { batch as tplB } from "./batches/templates-b";
+import { batch as tplC } from "./batches/templates-c";
 
-export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC].sort((a, b) =>
+export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC, ...tplA, ...tplB, ...tplC].sort((a, b) =>
   b.addedAt.localeCompare(a.addedAt),
 );
 

@@ -21,7 +21,10 @@ export type ControlDef =
   | { type: "color"; key: string; label: string }
   | { type: "select"; key: string; label: string; options: { label: string; value: string }[] }
   | { type: "number"; key: string; label: string; min: number; max: number; step: number; unit?: string }
-  | { type: "toggle"; key: string; label: string };
+  | { type: "toggle"; key: string; label: string }
+  // An uploaded file (logo, screenshot). The value is a URL: a bundled sample path under /templates/ by default,
+  // or a blob: URL for the user's own file, which never leaves the browser and is kept out of shared links.
+  | { type: "image"; key: string; label: string; hint?: string };
 
 // A colourway: a named set of colour props applied together. The first palette is the default look.
 // `swatch` is 2–4 colours used to draw the palette button.

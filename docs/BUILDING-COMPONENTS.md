@@ -31,10 +31,11 @@ Then add one import to your batch file, `src/motion/batches/<batch>.ts`, and app
    with transparency.
 4. **Export-safe CSS only.** The browser exporter redraws the DOM onto a canvas, so stick to what it supports:
    - Allowed: `linear-gradient` backgrounds, solid colours, border-radius, borders, `box-shadow`, opacity,
-     2D and 3D transforms, `clip-path`, `overflow: hidden`, `filter: blur()`, `mask-image`, text and inline SVG
+     2D and 3D transforms, `clip-path`, `overflow: hidden`, `filter: blur()`, `object-fit`, text and inline SVG
      (including SVG `<radialGradient>`, `<linearGradient>`, `<filter>`, paths, strokes, `strokeDasharray`).
    - Not allowed: CSS `radial-gradient` / `conic-gradient`, `backdrop-filter`, `mix-blend-mode`,
-     `text-shadow`, `background-clip: text`, external images and fonts.
+     `text-shadow`, `background-clip: text`, CSS `mask-image` (it exports as a ghost duplicate; use an SVG mask or
+     gradient stroke), `object-position`, external images and fonts.
 5. **Fonts:** only `FONT_SANS` (Inter) and `FONT_MONO` (Geist Mono) from the kit; see the colour and type system below.
    Never write `var(--font-…)` in a component: exported SVG text can't resolve CSS variables and falls back to serif.
 6. **Loop or hold.** Loops must end exactly where they start; `envelope()` helps. One-shot reveals ease in and
@@ -165,3 +166,44 @@ Premium product-launch motion, at the level of Apple, Linear, Stripe, Vercel and
 - `addedAt`: a `YYYY-MM-DD` date between 2026-09-01 and 2026-10-20. Give one or two per batch a date between
   2026-10-14 and 2026-10-20 so they show as New.
 - `fps`: 30.
+
+## Templates (approved 2026-10-21)
+
+Templates are short designed films, not UI loops: 4–6 full-frame shots cut on a steady rhythm, in the look of the
+OpenAI specimen, the Figma films and our Figma, Spotify and Elon films. Users change the words, upload their logo and
+screenshots, pick a colourway and export. The 44 components above stay in the library as Elements.
+
+Look frames: `E:/Breeders/out/Breeders-Templates-look-frames.png`. Toolkit: `src/motion/film.tsx`.
+
+**Shape of a template**
+- `category: "templates"`, `ratios: ["16:9", "9:16"]` (16:9 first; it is the main film).
+- 180–300 frames at 30fps (6–10s), one of `TEMPLATE_DURATIONS`. Not a loop: it ends on the logo or title card,
+  held still for the last `FINAL_HOLD` frames.
+- Shots are hard cuts at fixed frames (`useShot(starts)`, default `SHOT` = 45f). Motion inside a shot uses the kit
+  curves; nothing drifts aimlessly. One idea per shot, readable in a still.
+- **9:16 is designed, not squeezed.** Branch on `isVertical` and lay each shot out again: stack instead of row,
+  bigger type relative to the width, screenshots swapped for the phone screen where that reads better.
+
+**Colour.** Each shot is one flat field from `FILM` (black, white, cream, canvas grey, lavender, lime, deep green,
+plum) with black or white type; `FILM.select` for selection boxes, `FILM.orange` only for data or a call to action.
+No gradients, glows or tinted darks. Ship 3–4 palettes; each changes the field colours together.
+
+**Type.** Inter only: 500 for statements, 600 for one key word, tracking −0.03 to −0.045em at display sizes, sentence
+case. Statement type is big: 96–140u on 16:9, 88–120u on 9:16. Geist Mono only for tiny labels and code texture.
+
+**Uploads.** Use `image` controls for the logo and screenshots, defaulting to `SAMPLE.logo`, `SAMPLE.site` and
+`SAMPLE.phone`. Render them only through `Logo` and `Screenshot` (or Remotion's `Img`) so uploads of any size and
+aspect ratio still look right: a logo is sized by height; a screenshot fills its frame's width and crops from the top.
+Keep the brand name as a separate `text` control (default `SAMPLE.brand`).
+
+**Toolkit (`film.tsx`)**
+- `useShot(starts)` → `{ index, local, length }` for the current shot.
+- `CodeTexture` dim monospace code on black (Figma film openers).
+- `Cursor` multiplayer cursor with a name tag (`CURSOR_COLORS`); `SelectionBox` hairline frame, handles, size tag.
+- `Logo` uploaded mark plus name, or an initial tile; `Screenshot` top-cropped image in a rounded frame.
+
+**Controls.** 6–10: the statement lines and brand name (`text`, with `maxLength`), the image slots, the 2–3 field
+colours (`color`), and pace (`number`, frames per shot) if the template allows it.
+
+**Prompt.** Describe the film shot by shot with frame ranges, exact colours, type sizes and curves. Refer to uploads
+as "the user's logo file" / "the user's screenshot"; never paste an image URL into the prompt.

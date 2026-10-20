@@ -3,6 +3,7 @@ import { RotateCcw } from "lucide-react";
 import type { AnyMotionDef, ControlDef, MotionProps, PropValue } from "@/motion/types";
 import { propsEqual } from "@/lib/url-props";
 import { ColorControl } from "./controls/ColorControl";
+import { ImageControl } from "./controls/ImageControl";
 import { NumberControl } from "./controls/NumberControl";
 import { SelectControl } from "./controls/SelectControl";
 import { TextControl } from "./controls/TextControl";
@@ -31,7 +32,9 @@ const layoutSpans = (controls: ControlDef[]) => {
   return half;
 };
 
-function Control({ control, value, onChange }: { control: ControlDef; value: PropValue | undefined; onChange: (value: PropValue) => void }) {
+type ControlProps = { control: ControlDef; value: PropValue | undefined; fallback: PropValue | undefined; onChange: (value: PropValue) => void };
+
+function Control({ control, value, fallback, onChange }: ControlProps) {
   const id = `edit-${control.key}`;
   switch (control.type) {
     case "text":
@@ -44,6 +47,8 @@ function Control({ control, value, onChange }: { control: ControlDef; value: Pro
       return <NumberControl id={id} control={control} value={typeof value === "number" ? value : control.min} onChange={onChange} />;
     case "toggle":
       return <ToggleControl id={id} control={control} value={Boolean(value)} onChange={onChange} />;
+    case "image":
+      return <ImageControl id={id} control={control} value={String(value ?? "")} fallback={String(fallback ?? "")} onChange={onChange} />;
   }
 }
 
@@ -60,7 +65,7 @@ export function EditTab({ def, props, onChange, onReset }: EditTabProps) {
         <div className="grid grid-cols-2 gap-x-2.5 gap-y-5">
           {controls.map((control, i) => (
             <div key={control.key} className={cx("min-w-0", half[i] ? "col-span-1" : "col-span-2")}>
-              <Control control={control} value={props[control.key]} onChange={(value) => onChange(control.key, value)} />
+              <Control control={control} value={props[control.key]} fallback={(def.defaultProps as MotionProps)[control.key]} onChange={(value) => onChange(control.key, value)} />
             </div>
           ))}
         </div>
