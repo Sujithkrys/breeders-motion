@@ -1,0 +1,40 @@
+{
+  "name": "breeders-motion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Breeders — a free library of motion components: copy the prompt, take the code, or edit and export in the browser.",
+  "scripts": {
+    "gen": "node scripts/gen-sources.mjs",
+    "predev": "node scripts/gen-sources.mjs",
+    "dev": "next dev",
+    "prebuild": "node scripts/gen-sources.mjs",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "node scripts/gen-sources.mjs && tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-three/fiber": "9.3.0",
+    "@remotion/player": "4.0.537",
+    "@remotion/three": "4.0.537",
+    "@remotion/web-renderer": "4.0.537",
+    "cmdk": "1.1.1",
+    "fflate": "0.8.2",
+    "gifenc": "1.0.3",
+    "lucide-react": "0.544.0",
+    "next": "16.4.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.537",
+    "sugar-high": "0.9.3",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.14",
+    "@types/node": "22.18.8",
+    "@types/react": "19.2.0",
+    "@types/react-dom": "19.2.0",
+    "@types/three": "0.180.0",
+    "tailwindcss": "4.1.14",
+    "typescript": "5.9.3"
+  }
+}
