@@ -9,8 +9,14 @@ import { batch as uiB } from "./batches/ui-b";
 import { batch as charts } from "./batches/charts";
 import { batch as three } from "./batches/3d";
 import { batch as transitions } from "./batches/transitions";
+import { batch as v2a } from "./batches/v2-a";
+import { batch as v2b } from "./batches/v2-b";
+import { batch as v2c } from "./batches/v2-c";
+import { batch as v2d } from "./batches/v2-d";
+import { batch as v2e } from "./batches/v2-e";
+import { batch as v2f } from "./batches/v2-f";
 
-export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions].sort((a, b) =>
+export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f].sort((a, b) =>
   b.addedAt.localeCompare(a.addedAt),
 );
 

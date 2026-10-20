@@ -45,22 +45,47 @@ Then add one import to your batch file, `src/motion/batches/<batch>.ts`, and app
 7. **Deterministic, light and self-contained.** No network, no data fetching, no new npm packages. The grid plays
    dozens of these at once, so keep the DOM small: generally fewer than ~150 nodes, and fewer for 3D scenes.
 
-## Colour: be colourful
+## The v2 look (approved 2026-10-20, see the Library v2 sheet)
 
-Breeders blue (#0067FC) is the **site's** accent. Components are **not** blue by default.
+Taken from our approved films (Framer, Figma Motion, ClaudeFull, Pine) and the references we picked (Hairline UI,
+the context-window card, Wispr Flow, the OpenAI specimen). Premium means **restraint**: real UI, white space,
+crisp type, one colour doing one job.
 
-- Every component ships **4–6 palettes** from clearly different hue families: warm (amber, coral, red),
-  fresh (mint, lime, teal), cool (indigo, sky), vivid (magenta, violet), pastel, and a mono or graphite one.
-  Mix in at least one **light-background** palette.
-- A palette's `values` sets **every** colour prop, including `background`, so switching palettes changes the
-  whole look.
-- `defaultProps` spreads the first palette's values. Across a batch, the first palettes must differ, so the grid
-  looks like a box of crayons, not a wall of blue.
-- `swatch` lists the 2–4 colours that best represent the palette.
+**Colour system**: use these values, not invented ones.
+
+| Role | Colours |
+|---|---|
+| Canvas | White `#FFFFFF`, Paper `#FAFAF8`, Soft `#F2F2EF`, Cream `#F5F1E8` |
+| Dark (flat only) | Ink `#0E0F12`, Black `#000000` |
+| Flat blocks | Lavender `#C4B9FD`, Lime `#E3F79C`, Deep green `#0C5A2F`, Plum `#5B2A5E`, Blue `#2443FF`, Breeders `#0067FC`, Coral `#FF5A1F` |
+| UI | Selection `#0099FF` with `#E5F4FF` fill, hairline `#E8E8EC`, ink2 `#3B3D44`, sub `#7B7E87` |
+
+**Rules**
+- **Canvas:** white, paper or cream. Dark only as flat ink or black.
+- **Colour:** one flat colour block or one accent per component.
+- **UI:** real product UI. White cards with hairline borders (`1px #E8E8EC`) and tiny shadows
+  (`0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)`). Figma-style selection boxes with size labels, and
+  name-tag cursors where they help.
+- **Type:** Geist. Large titles at weight 400–500 with -0.035 to -0.045em tracking (the Figma-film look).
+  Small UI labels at 13–16px equivalent are fine *inside* UI that is framed large.
+- **Scale:** the UI piece fills most of the frame (60–80% width at 16:9). Small UI floating in empty space reads
+  as a mockup.
+- **Motion:** calm and precise. Cursor-driven interactions, morphs, reflows and match cuts. Ease out softly.
+- **Never:**
+  - gold, amber or brass
+  - coloured glow fog or blurry colour blobs
+  - gradient app-icon tiles
+  - muddy tinted darks (brown, olive or teal-black)
+  - neon
+  - rainbow gradients
+
+**Palettes:** 3–5 per component, each one a coherent look from the system above. For example: white canvas plus
+Breeders accent; cream plus coral; a lavender block; a lime block; ink plus white. `values` sets **every** colour
+prop including `background`. `swatch` lists 2–4 representative colours.
 
 ## Controls
 
-Give each component 4–7 controls:
+Give each component 4–8 controls:
 - every visible piece of text (`text`)
 - the 1–3 most important colours (`color`)
 - 1–3 motion levers (`number`), such as spread, stagger, intensity or count
@@ -82,7 +107,7 @@ matches what they see. Rules:
 
 Premium product-launch motion, at the level of Apple, Linear, Stripe, Vercel and Raycast:
 - Calm, readable motion; real-looking UI pieces, isolated and large.
-- Tight typography, rich but tasteful colour, depth from soft shadows.
+- Tight typography, restrained colour (see the v2 look), depth from hairlines and tiny shadows.
 - No clip-art, emoji, lorem ipsum or "AI tropes" (rainbow gradient washes everywhere, neon on everything).
 - Every frame should look good as a still.
 
