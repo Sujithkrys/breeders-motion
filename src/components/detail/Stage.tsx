@@ -48,7 +48,8 @@ export function Stage({ def, props, ratio, playerRef }: StageProps) {
             spaceKeyToPlayOrPause={false}
             errorFallback={renderError}
             acknowledgeRemotionLicense
-            style={{ width: "100%", height: "100%" }}
+            // Black behind the composition, like the export's matte, so a colour with opacity previews as it exports.
+            style={{ width: "100%", height: "100%", background: transparent ? undefined : "#000000" }}
           />
         </div>
       </div>

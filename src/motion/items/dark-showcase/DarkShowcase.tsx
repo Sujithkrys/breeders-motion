@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, interpolate } from "remotion";
 import { Cursor, FILM, Logo, SAMPLE, Screenshot, useShot } from "../../film";
 import { FONT_MONO, FONT_SANS, RADIUS, STAGGER, STROKE, alpha, mix, progress, useLayout } from "../../kit";
+import { type Area, parseArea } from "../../placement";
 
 export type DarkShowcaseProps = {
   base: string; // shots 1–3
@@ -14,6 +15,9 @@ export type DarkShowcaseProps = {
   logo: string;
   screenshot: string;
   phoneShot: string;
+  detailArea: string; // "x,y,w,h" on `screenshot`: the part shot 2's camera glides over (16:9)
+  detailAreaTall: string; // "x,y,w,h" on `phoneShot` (9:16)
+  showCursor: boolean; // off: no cursor; the button still presses and the label still rolls
 };
 
 // ---------- timeline (frames of the 240-frame film; shots are hard cuts) ----------
@@ -49,7 +53,6 @@ export const SIZE = {
     plateY: -20,
     kicker: 20,
     window: 0.68, // shot 2: the zoomed screenshot fills the top 68%
-    zoom: [2.3, 2.45] as const, // × the plate width
     statement: 72,
     maxLines: 2,
     button: { w: 560, h: 120 },
@@ -65,7 +68,6 @@ export const SIZE = {
     plateY: -60,
     kicker: 24,
     window: 0.66,
-    zoom: [2.3, 2.45] as const,
     statement: 84,
     maxLines: 3,
     button: { w: 820, h: 168 },
@@ -81,13 +83,34 @@ export const LINE_H = 1.08;
 export const PLATE_LINE = 0.1; // white hairline opacity on the plate
 export const EDGE_LINE = 0.18; // hairline under the zoomed screenshot
 
-// Shot 2's camera: the view centre pans (linear) across a region of interest, as fractions of the image. Tuned to a
-// week-view app (16:9: the mid-week columns and the "now" line, inside x .45–.85, y .15–.55) and a phone day view
-// (9:16: the event list). Any upload still reads: the centre is clamped so the view never leaves the image.
-export const PAN = {
-  wide: { from: [0.55, 0.3] as const, to: [0.7, 0.4] as const, region: "x 45–85%, y 15–55%" },
-  tall: { from: [0.27, 0.47] as const, to: [0.27, 0.62] as const, region: "the left of the event list, y 38–78%" },
+// The plate's shape (width / height) as drawn: a 16:10 screenshot (16:9 film) or a 9:19.5 phone screen (9:16 film).
+// Placements on the plate images use these aspects.
+export const PLATE_ASPECT = { wide: 16 / 10, tall: 9 / 19.5 } as const;
+
+// Shot 2's camera frames a user-placed detail area (fractions of the visible plate) so it fills the window, then
+// drifts across it on linear for the whole shot. Defaults are the regions the earlier fixed pan showed on the sample
+// images: the mid-week columns and the "now" line of the week view (16:9) and the event list of the phone day view (9:16).
+export const DETAIL_AREA: { wide: Area; tall: Area } = {
+  wide: { x: 0.34, y: 0.17, w: 0.58, h: 0.36 },
+  tall: { x: 0, y: 0.35, w: 0.73, h: 0.4 },
+};
+export const CAMERA = {
+  push: 1.06, // the view starts this much wider than the fitted area and pushes in to it
+  drift: { wide: [0.06, 0.03] as const, tall: [0, 0.06] as const }, // centre travel, as fractions of the area's w / h
+  zoom: [1.2, 4] as const, // image width limits, × the shot-1 plate width (the image always covers the window too)
 } as const;
+
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+// Image widths at the start and end of shot 2, in the same units as `winW` / `winH` / `plateW`.
+// Fit: the larger zoom that still shows the whole area; then capped, and never so small the image fails to cover
+// the window. The push starts wider by CAMERA.push (still covering).
+export const detailCamera = (area: Area, winW: number, winH: number, plateW: number, aspect: number) => {
+  const cover = Math.max(winW, winH * aspect);
+  const fit = Math.min(winW / area.w, (winH * aspect) / area.h);
+  const endW = Math.max(cover, clamp(fit, CAMERA.zoom[0] * plateW, CAMERA.zoom[1] * plateW));
+  const startW = Math.max(cover, endW / CAMERA.push);
+  return { startW, endW };
+};
 
 // ---------- colour ----------
 export const isDark = (hex: string) => {
@@ -196,7 +219,6 @@ const Glyph: React.FC<{ kind: "calendar" | "check"; size: number; color: string;
 );
 
 type Pt = [number, number];
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 // A slight arc between two points, as a hand moves a mouse.
 const glide = (a: Pt, b: Pt, t: number): Pt => {
   const dx = b[0] - a[0];
@@ -264,18 +286,21 @@ const PlateShot: React.FC<{ p: DarkShowcaseProps; local: number; length: number 
 const DetailShot: React.FC<{ p: DarkShowcaseProps; local: number; length: number }> = ({ p, local, length }) => {
   const { u, width, height, isVertical } = useLayout();
   const L = isVertical ? SIZE.tall : SIZE.wide;
-  const pan = isVertical ? PAN.tall : PAN.wide;
+  const aspect = isVertical ? PLATE_ASPECT.tall : PLATE_ASPECT.wide;
+  const area = isVertical ? parseArea(p.detailAreaTall, DETAIL_AREA.tall) : parseArea(p.detailArea, DETAIL_AREA.wide);
+  const drift = isVertical ? CAMERA.drift.tall : CAMERA.drift.wide;
   const ink = textOn(p.base);
   const t = progress(local, 0, length, "linear");
 
-  // the camera: a full-width window over the top of the frame, the screenshot large inside it
+  // the camera: a full-width window over the top of the frame, the screenshot large inside it, framing the area
   const winH = height * L.window;
-  const imgW = L.plateW * u * mix(L.zoom[0], L.zoom[1], t);
-  const imgH = isVertical ? (imgW * 19.5) / 9 : (imgW * 10) / 16;
+  const cam = detailCamera(area, width, winH, L.plateW * u, aspect);
+  const imgW = mix(cam.startW, cam.endW, t);
+  const imgH = imgW / aspect;
   const visX = Math.min(1, width / imgW) / 2;
   const visY = Math.min(1, winH / imgH) / 2;
-  const cx = clamp(mix(pan.from[0], pan.to[0], t), visX, 1 - visX);
-  const cy = clamp(mix(pan.from[1], pan.to[1], t), visY, 1 - visY);
+  const cx = clamp(area.x + area.w * (0.5 + drift[0] * (t - 0.5)), visX, 1 - visX);
+  const cy = clamp(area.y + area.h * (0.5 + drift[1] * (t - 0.5)), visY, 1 - visY);
   const src = isVertical ? p.phoneShot || SAMPLE.phoneDark : p.screenshot || SAMPLE.appDark;
 
   const { rows, size } = fitRows(p.line, width - 2 * MARGIN * u, L.statement * u, L.maxLines);
@@ -289,7 +314,7 @@ const DetailShot: React.FC<{ p: DarkShowcaseProps; local: number; length: number
           y={winH / 2 - cy * imgH}
           w={imgW}
           h={imgH}
-          radius={L.plateRadius * u * L.zoom[0]}
+          radius={L.plateRadius * u * (cam.endW / (L.plateW * u))}
           style={isVertical ? undefined : { background: FILM.black }}
         />
       </div>
@@ -381,7 +406,7 @@ const ControlShot: React.FC<{ p: DarkShowcaseProps; local: number }> = ({ p, loc
         {roll > 0 ? label(p.actionDone, "check", 1, (1 - roll) * bh) : null}
       </div>
       {/* macOS-style pointer: black fill, white outline, so it reads on the black field and on the white button */}
-      <Cursor u={u} x={cur[0]} y={cur[1]} color={FILM.black} press={press} scale={L.cursor} />
+      {p.showCursor ? <Cursor u={u} x={cur[0]} y={cur[1]} color={FILM.black} press={press} scale={L.cursor} /> : null}
     </>
   );
 };

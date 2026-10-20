@@ -1,7 +1,25 @@
 import { CURSOR_COLORS, FILM, SAMPLE } from "../../film";
 import { FINAL_HOLD, STAGGER, bezierText, targetLine } from "../../kit";
+import { areaText, pointText } from "../../placement";
 import { defineMotion } from "../../types";
-import { LINE_H, MARGIN, SEEDS, SHOTS, SIZE, Statement, T, TARGETS, TEXTURE_OPACITY, TRACK, fitRows, textOn, type StatementProps } from "./Statement";
+import {
+  LINE_H,
+  MARGIN,
+  PLACEMENT_DEFAULTS,
+  REF_PAGE,
+  SEEDS,
+  SHOTS,
+  SIZE,
+  SLOT_ASPECT,
+  Statement,
+  T,
+  TEXTURE_OPACITY,
+  TRACK,
+  fitRows,
+  placements,
+  textOn,
+  type StatementProps,
+} from "./Statement";
 
 // Each colourway sets the type-card base and the screenshot field together.
 const looks: { name: string; base: string; field: string }[] = [
@@ -33,6 +51,9 @@ export default defineMotion<StatementProps>({
     screenshot: SAMPLE.site,
     phoneShot: SAMPLE.phone,
     cursorName: "Maya",
+    showCursor: true,
+    showSelection: true,
+    ...PLACEMENT_DEFAULTS,
   } as StatementProps,
   palettes,
   controls: [
@@ -43,6 +64,12 @@ export default defineMotion<StatementProps>({
     { type: "image", key: "logo", label: "Logo", hint: "PNG or SVG, transparent" },
     { type: "image", key: "screenshot", label: "Screenshot", hint: "16:10 page screenshot" },
     { type: "image", key: "phoneShot", label: "Phone screen", hint: "Phone screen, 9:19.5 (vertical film)" },
+    { type: "toggle", key: "showCursor", label: "Cursor" },
+    { type: "toggle", key: "showSelection", label: "Selection box" },
+    { type: "point", key: "clickPoint", label: "Cursor click", image: "screenshot", aspect: SLOT_ASPECT.wide, ratio: "16:9", when: "showCursor" },
+    { type: "area", key: "selectArea", label: "Selection box", image: "screenshot", aspect: SLOT_ASPECT.wide, ratio: "16:9", when: "showSelection" },
+    { type: "point", key: "clickPointTall", label: "Cursor click", image: "phoneShot", aspect: SLOT_ASPECT.tall, ratio: "9:16", when: "showCursor" },
+    { type: "area", key: "selectAreaTall", label: "Selection box", image: "phoneShot", aspect: SLOT_ASPECT.tall, ratio: "9:16", when: "showSelection" },
     { type: "color", key: "base", label: "Base" },
     { type: "color", key: "field", label: "Field" },
     { type: "text", key: "cursorName", label: "Cursor name", maxLength: 12 },
@@ -50,7 +77,6 @@ export default defineMotion<StatementProps>({
   prompt: (p, c) => {
     const tall = c.height > c.width;
     const L = tall ? SIZE.tall : SIZE.wide;
-    const tg = tall ? TARGETS.tall : TARGETS.wide;
     const end = c.seconds * c.fps;
     const ink = textOn(p.base);
     const ink3 = textOn(p.field);
@@ -64,6 +90,18 @@ export default defineMotion<StatementProps>({
     const place = tall
       ? `left-aligned at x 90px with its top at 50% of the height (lower middle), within ${L.maxW}px`
       : `centred in the frame, within ${L.maxW}px`;
+    const pl = placements(p, tall);
+    const ref = tall ? REF_PAGE.tall : REF_PAGE.wide;
+    const showCursor = p.showCursor !== false;
+    const showSelection = p.showSelection !== false;
+    const clickAt = `${pointText(pl.click)} of the screenshot frame${pl.clickIsDefault ? ` (${tall ? "the full-width button at the bottom of the phone screen" : "the primary button under the hero headline"})` : ""}`;
+    const areaAt = `${areaText(pl.to)} of the screenshot frame${pl.areaIsDefault ? ` (${tall ? "the whole phone screen" : "the hero area: headline, subtitle and buttons"})` : ""}`;
+    const cursorLine = showCursor
+      ? `A Figma multiplayer cursor (arrow in ${CURSOR_COLORS.pink} with a 1.6px white outline, ${Math.round(30 * L.cursor)}px tall, name tag "${p.cursorName}" in white Inter 500 on a ${CURSOR_COLORS.pink} pill) glides in from off-frame bottom-right along a slight arc, frames ${f(2, T.glide[0])}–${f(2, T.glide[1])} on travel, ${bezierText("travel")}, to the click point at ${clickAt}, riding with the frame as it rises, and clicks at frame ${f(2, T.click)} (scale dips 10% and returns over 8 frames).`
+      : `No cursor is drawn.${showSelection ? ` The click point at ${clickAt} still anchors the selection.` : ""}`;
+    const selectionLine = showSelection
+      ? `Frames ${f(2, T.select[0])}–${f(2, T.select[1])}: a ${FILM.select} selection box (2px stroke, four 11px white square handles with blue outlines) grows from a small box around the click point (${areaText(pl.from)}) out to the selection area at ${areaAt} on ${enter}, with a "${pl.label}" tag below it (the area's size on a ${ref.w}×${ref.h} page): white Inter 500 16px on a ${FILM.select} pill, radius 6. Hold until the cut.`
+      : `No selection box is drawn. Hold the screenshot until the cut.`;
     return [
       targetLine(c.target, "a four-shot launch film in the style of Figma's launch films: big calm statements, the product, the logo", c.width, c.height, c.seconds),
       `Hard cuts at frames ${SHOTS.join(", ")} (no transitions). Flat colour fields only: no gradients, glows or text shadows. Inter only, sentence case. Sizes are px at 1080 on the short side.`,
@@ -75,8 +113,9 @@ export default defineMotion<StatementProps>({
         ? `The user's phone screenshot in a ${w}×${h}px phone frame (radius ${L.radius}), centred horizontally in the lower part of the frame, the image filling the width and cropped from the top.`
         : `The user's screenshot in a ${w}×${h}px 16:10 frame (radius ${L.radius}), centred horizontally, 40px below centre, the image filling the width and cropped from the top.`,
       `It has a 1px rgba(0,0,0,0.06) hairline and shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06); it rises ${T.travel}px over ${T.shotRise} frames on ${enter} while fading in over ${T.shotFade} frames, from frame ${SHOTS[2]}.`,
-      `A Figma multiplayer cursor (arrow in ${CURSOR_COLORS.pink} with a 1.6px white outline, ${Math.round(30 * L.cursor)}px tall, name tag "${p.cursorName}" in white Inter 500 on a ${CURSOR_COLORS.pink} pill) glides in from off-frame bottom-right along a slight arc, frames ${f(2, T.glide[0])}–${f(2, T.glide[1])} on travel, ${bezierText("travel")}, to the ${tall ? "full-width button at the bottom of the phone screen" : "primary button under the hero headline"}, and clicks at frame ${f(2, T.click)} (scale dips 10% and returns over 8 frames).`,
-      `Frames ${f(2, T.select[0])}–${f(2, T.select[1])}: a ${FILM.select} selection box (2px stroke, four 11px white square handles with blue outlines) grows from the clicked button to ${tall ? "the whole phone screen" : "the hero area (headline, subtitle and buttons)"} on ${enter}, with a "${tg.label}" tag below it: white Inter 500 16px on a ${FILM.select} pill, radius 6. Hold until the cut.`,
+      `Placements are percentages of the visible screenshot frame (the width-fitted, top-cropped slot).`,
+      cursorLine,
+      selectionLine,
       `Shot 4 (frames ${SHOTS[3]}–${end}): flat ${p.base}. The user's logo file at ${L.logo}px tall followed by "${p.brand}" in Inter 500 ${Math.round(L.logo * 0.82)}px, tracking -0.02em, ${ink}, gap ${Math.round(L.logo * 0.32)}px, centred. It fades 0→1 and scales 0.96→1 over ${T.logoDur} frames from frame ${f(3, T.logoStart)} on ${enter}.`,
       `Hold the logo card still to the end; the last ${FINAL_HOLD} frames (${end - FINAL_HOLD}–${end}) are perfectly still.`,
     ].join("\n");

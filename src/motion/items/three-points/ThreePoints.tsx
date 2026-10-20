@@ -16,6 +16,8 @@ export type ThreePointsProps = {
   brand: string;
   logo: string;
   cursorName: string;
+  showCursor: boolean; // off: no cursor, the chosen card still lifts at the same frame
+  highlight: string; // "1" | "2" | "3": the card the cursor lands on and lifts
 };
 
 // ---------- timeline (frames of the 240-frame film; shots are hard cuts) ----------
@@ -31,7 +33,7 @@ export const T = {
   cardFade: 12, // one card's fade
   glide: [36, 56] as const, // cursor glide in (frames 90–110 of the film)
   click: 56, // press bump as it lands (frame 110)
-  lift: [57, 81] as const, // card 2 lifts on the spring (frames 111–135)
+  lift: [57, 81] as const, // the chosen card lifts on the spring (frames 111–135)
   logoStart: 2,
   logoDur: 18,
 } as const;
@@ -48,8 +50,26 @@ export const LIFT = { up: 24, slide: 16, scale: 1.02, dim: 0.85 } as const; // u
 export const TRACK = { title: -0.04, small: -0.03, point: -0.02 } as const;
 export const LINE_H = 1.08;
 export const POINT_LINE_H = 1.15;
-// Where the cursor lands on card 2, as fractions of the card.
+// Where the cursor lands on the chosen card, as fractions of the card.
 export const TARGET = { wide: [0.58, 0.46] as const, tall: [0.66, 0.5] as const };
+// Which card lifts: "1"–"3" → 0–2; anything else falls back to the second card.
+export const HIGHLIGHT_DEFAULT = "2";
+export const highlightIndex = (v: unknown) => {
+  const n = Math.round(Number(v));
+  return n >= 1 && n <= 3 ? n - 1 : 1;
+};
+// Where the cursor comes from, by card, so it never crosses the frame needlessly: in the 16:9 row the first card is
+// approached from off-frame bottom-left and the others from bottom-right; in the 9:16 stack the top card is approached
+// from off-frame right (level with a point below it), the others from bottom-right.
+export type Approach = "bottom-left" | "bottom-right" | "right";
+export const approachFor = (index: number, tall: boolean): Approach => (tall ? (index === 0 ? "right" : "bottom-right") : index === 0 ? "bottom-left" : "bottom-right");
+export const APPROACH_OFF = { x: 40, y: 60, rightBelow: 220 } as const; // px at 1080 past the frame edge / below the target
+export const approachStart = (a: Approach, target: [number, number], width: number, height: number, u: number): [number, number] =>
+  a === "bottom-left"
+    ? [-APPROACH_OFF.x * u, height + APPROACH_OFF.y * u]
+    : a === "right"
+      ? [width + APPROACH_OFF.x * u, target[1] + APPROACH_OFF.rightBelow * u]
+      : [width + APPROACH_OFF.x * u, height + APPROACH_OFF.y * u];
 export const liftShadow = (u: number, l: number) =>
   `0 ${2 * u * l}px ${4 * u}px ${alpha(FILM.black, 0.06 * l)}, 0 ${24 * u * l}px ${48 * u}px ${alpha(FILM.black, 0.16 * l)}`;
 
@@ -197,15 +217,16 @@ const CardsShot: React.FC<{ p: ThreePointsProps; local: number }> = ({ p, local 
   const rects = cardRects(width / u, height / u, isVertical);
   const colors = [p.c1, p.c2, p.c3];
   const points = [p.point1, p.point2, p.point3];
+  const hi = highlightIndex(p.highlight);
   const lift = progress(local, T.lift[0], T.lift[1], "spring");
   const dx = isVertical ? LIFT.slide * u * lift : 0;
   const dy = isVertical ? 0 : -LIFT.up * u * lift;
 
-  // cursor: glides in from the bottom-right on an arc, lands on card 2 and rides with it as it lifts
-  const r2 = rects[1];
+  // cursor: glides in from the card's side on an arc, lands on the chosen card and rides with it as it lifts
+  const rc = rects[hi];
   const tg = isVertical ? TARGET.tall : TARGET.wide;
-  const target: Pt = [(r2.x + tg[0] * r2.w) * u, (r2.y + tg[1] * r2.h) * u];
-  const start: Pt = [width + 40 * u, height + 60 * u];
+  const target: Pt = [(rc.x + tg[0] * rc.w) * u, (rc.y + tg[1] * rc.h) * u];
+  const start: Pt = approachStart(approachFor(hi, isVertical), target, width, height, u);
   const g = glide(start, target, progress(local, T.glide[0], T.glide[1], "travel"));
   const press = interpolate(local, [T.click - 3, T.click, T.click + 5], [0, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
@@ -229,11 +250,13 @@ const CardsShot: React.FC<{ p: ThreePointsProps; local: number }> = ({ p, local 
           <div key={i}>{r.join(" ")}</div>
         ))}
       </div>
-      {rects.map((r, i) => {
+      {/* the lifted card is drawn last so its shadow falls over its neighbours */}
+      {[0, 1, 2].filter((i) => i !== hi).concat(hi).map((i) => {
+        const r = rects[i];
         const s = T.cardStart + T.cardStagger * i;
         const rise = progress(local, s, s + T.cardDur, "spring");
         const fade = progress(local, s, s + T.cardFade, "enter");
-        const lifted = i === 1;
+        const lifted = i === hi;
         const tx = lifted ? dx : 0;
         const ty = (1 - rise) * RISE * u + (lifted ? dy : 0);
         const sc = lifted ? 1 + (LIFT.scale - 1) * lift : 1;
@@ -273,7 +296,7 @@ const CardsShot: React.FC<{ p: ThreePointsProps; local: number }> = ({ p, local 
           </div>
         );
       })}
-      {local >= T.glide[0] ? (
+      {p.showCursor && local >= T.glide[0] ? (
         <Cursor u={u} x={g[0] + dx} y={g[1] + dy} name={p.cursorName} color={CURSOR_COLORS.pink} press={press} scale={L.cursor} />
       ) : null}
     </>

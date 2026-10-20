@@ -1,9 +1,10 @@
 "use client";
 import { RotateCcw } from "lucide-react";
-import type { AnyMotionDef, ControlDef, MotionProps, PropValue } from "@/motion/types";
+import type { AnyMotionDef, ControlDef, MotionProps, PropValue, Ratio } from "@/motion/types";
 import { propsEqual } from "@/lib/url-props";
 import { ColorControl } from "./controls/ColorControl";
 import { ImageControl } from "./controls/ImageControl";
+import { PlacementControl } from "./controls/PlacementControl";
 import { NumberControl } from "./controls/NumberControl";
 import { SelectControl } from "./controls/SelectControl";
 import { TextControl } from "./controls/TextControl";
@@ -13,6 +14,7 @@ import { OUTLINE_BUTTON, cx } from "./ui";
 type EditTabProps = {
   def: AnyMotionDef;
   props: MotionProps;
+  ratio: Ratio;
   onChange: (key: string, value: PropValue) => void;
   onReset: () => void;
 };
@@ -32,9 +34,10 @@ const layoutSpans = (controls: ControlDef[]) => {
   return half;
 };
 
-type ControlProps = { control: ControlDef; value: PropValue | undefined; fallback: PropValue | undefined; onChange: (value: PropValue) => void };
+type ControlProps = { control: ControlDef; props: MotionProps; fallback: PropValue | undefined; onChange: (value: PropValue) => void };
 
-function Control({ control, value, fallback, onChange }: ControlProps) {
+function Control({ control, props, fallback, onChange }: ControlProps) {
+  const value = props[control.key];
   const id = `edit-${control.key}`;
   switch (control.type) {
     case "text":
@@ -49,11 +52,17 @@ function Control({ control, value, fallback, onChange }: ControlProps) {
       return <ToggleControl id={id} control={control} value={Boolean(value)} onChange={onChange} />;
     case "image":
       return <ImageControl id={id} control={control} value={String(value ?? "")} fallback={String(fallback ?? "")} onChange={onChange} />;
+    case "area":
+    case "point":
+      return <PlacementControl id={id} control={control} value={String(value ?? "")} fallback={String(fallback ?? "")} src={String(props[control.image] ?? "")} onChange={onChange} />;
   }
 }
 
-export function EditTab({ def, props, onChange, onReset }: EditTabProps) {
-  const controls = def.controls;
+// A control can belong to one ratio (a placement on that ratio's image) or sit under a toggle (`when`).
+const isShown = (c: ControlDef, props: MotionProps, ratio: Ratio) => (!c.ratio || c.ratio === ratio) && (!c.when || props[c.when] === true);
+
+export function EditTab({ def, props, ratio, onChange, onReset }: EditTabProps) {
+  const controls = def.controls.filter((c) => isShown(c, props, ratio));
   const half = layoutSpans(controls);
   const isDefault = propsEqual(props, def.defaultProps as MotionProps);
 
@@ -65,7 +74,7 @@ export function EditTab({ def, props, onChange, onReset }: EditTabProps) {
         <div className="grid grid-cols-2 gap-x-2.5 gap-y-5">
           {controls.map((control, i) => (
             <div key={control.key} className={cx("min-w-0", half[i] ? "col-span-1" : "col-span-2")}>
-              <Control control={control} value={props[control.key]} fallback={(def.defaultProps as MotionProps)[control.key]} onChange={(value) => onChange(control.key, value)} />
+              <Control control={control} props={props} fallback={(def.defaultProps as MotionProps)[control.key]} onChange={(value) => onChange(control.key, value)} />
             </div>
           ))}
         </div>

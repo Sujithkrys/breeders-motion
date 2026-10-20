@@ -210,3 +210,19 @@ colours (`color`), and pace (`number`, frames per shot) if the template allows i
 
 **Prompt.** Describe the film shot by shot with frame ranges, exact colours, type sizes and curves. Refer to uploads
 as "the user's logo file" / "the user's screenshot"; never paste an image URL into the prompt.
+
+**Cursors and selection boxes are optional and placeable (2026-10-21).** Any template that shows a cursor or a
+selection box gives users:
+- Toggles: `showCursor` and `showSelection` (`toggle`, default `true`). Off means it isn't drawn at all; the rest of
+  the shot still plays (a button still presses, a camera still zooms).
+- Placements (`area` / `point` controls, values parsed with `parseArea` / `parsePoint` from `src/motion/placement.ts`):
+  - `image` is the key of the image prop the placement sits on. `aspect` is the slot's width / height exactly as
+    the template draws it (16 / 10 for a 16:10 screenshot frame, 600 / 1300 for a 600×1300 phone frame). The
+    editor shows the image the way `Screenshot` does, width-fitted and cropped from the top, so fractions are of the
+    visible slot.
+  - One key per ratio, because each ratio shows a different image: e.g. `clickPoint` with `ratio: "16:9"` on
+    `screenshot`, and `clickPointTall` with `ratio: "9:16"` on `phoneShot`.
+  - `when` is the toggle that reveals it, e.g. `when: "showCursor"`.
+  - Defaults are tuned to the sample images and exported as constants. Map fractions onto the drawn slot with
+    `areaOn` / `pointOn`. Clamp anything derived (zoom, pan) so the camera never leaves the image.
+- The prompt states the placement in % (`areaText` / `pointText`) and says whether cursors and selection are shown.

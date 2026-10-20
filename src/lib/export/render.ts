@@ -1,7 +1,8 @@
 // In-browser rendering for the Export tab. Every function runs on the visitor's device: MP4 and WebM go through
 // renderMediaOnWeb (WebCodecs); GIF and PNG sequences render one still per frame and encode them here.
 // Import this module dynamically from client code: it pulls in the renderer and both encoders.
-import type { ComponentType } from "react";
+import { createElement, type ComponentType } from "react";
+import { AbsoluteFill } from "remotion";
 import { canRenderMediaOnWeb, renderMediaOnWeb, renderStillOnWeb, type CanRenderIssue, type WebRendererContainer, type WebRendererVideoCodec } from "@remotion/web-renderer";
 import { Zip, ZipPassThrough } from "fflate";
 import { GIFEncoder, applyPalette, quantize } from "gifenc";
@@ -26,11 +27,25 @@ const VIDEO_SETTINGS: Record<"mp4" | "webm", { container: WebRendererContainer; 
   webm: { container: "webm", videoCodec: "vp9" },
 };
 
-const compositionFor = (def: AnyMotionDef, ratio: Ratio) => {
+// Formats without alpha get an opaque black matte under the component. A colour with opacity on the root would
+// otherwise leave see-through pixels, which the encoder flattens to black anyway, but on a path ~15x slower.
+// The player draws the same black behind compositions, so the preview matches.
+const matted = new WeakMap<ComponentType<MotionProps>, ComponentType<MotionProps>>();
+const withMatte = (component: ComponentType<MotionProps>) => {
+  let m = matted.get(component);
+  if (!m) {
+    m = (props: MotionProps) => createElement(AbsoluteFill, { style: { background: "#000000" } }, createElement(component, props));
+    matted.set(component, m);
+  }
+  return m;
+};
+
+const compositionFor = (def: AnyMotionDef, ratio: Ratio, opaque: boolean) => {
   const { width, height } = RATIO_SIZE[ratio];
+  const component = def.component as ComponentType<MotionProps>;
   return {
     id: def.slug,
-    component: def.component as ComponentType<MotionProps>,
+    component: opaque ? withMatte(component) : component,
     width,
     height,
     fps: def.fps,
@@ -123,7 +138,7 @@ export async function renderVideo({
   const alpha = format === "webm" && transparent;
   await ensureExportFonts();
   const result = await renderMediaOnWeb({
-    composition: compositionFor(def, ratio),
+    composition: compositionFor(def, ratio, !alpha),
     inputProps: renderProps(props, alpha),
     ...VIDEO_SETTINGS[format],
     transparent: alpha,
@@ -147,7 +162,7 @@ export async function renderGif({
   signal,
   onProgress,
 }: RenderBase & { scale: number; gifFps: GifFps }): Promise<Blob> {
-  const composition = compositionFor(def, ratio);
+  const composition = compositionFor(def, ratio, true);
   await ensureExportFonts();
   const step = Math.max(1, Math.round(def.fps / gifFps));
   const frames: number[] = [];
@@ -190,7 +205,7 @@ export async function renderPngZip({
   signal,
   onProgress,
 }: RenderBase & { scale: number; transparent: boolean }): Promise<Blob> {
-  const composition = compositionFor(def, ratio);
+  const composition = compositionFor(def, ratio, !transparent);
   const inputProps = renderProps(props, transparent);
   await ensureExportFonts();
   const total = def.durationInFrames;

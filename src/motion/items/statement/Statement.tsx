@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, interpolate } from "remotion";
 import { CURSOR_COLORS, CodeTexture, Cursor, FILM, Logo, SAMPLE, Screenshot, SelectionBox, useShot } from "../../film";
 import { FONT_SANS, STAGGER, alpha, mix, progress, useLayout } from "../../kit";
+import { areaOn, areaValue, parseArea, parsePoint, pointOn, pointValue, type Area, type Point } from "../../placement";
 
 export type StatementProps = {
   base: string; // shots 1, 2 and 4
@@ -14,6 +15,12 @@ export type StatementProps = {
   screenshot: string;
   phoneShot: string;
   cursorName: string;
+  showCursor: boolean;
+  showSelection: boolean;
+  clickPoint: string; // "x,y" on screenshot (16:9)
+  selectArea: string; // "x,y,w,h" on screenshot (16:9)
+  clickPointTall: string; // "x,y" on phoneShot (9:16)
+  selectAreaTall: string; // "x,y,w,h" on phoneShot (9:16)
 };
 
 // ---------- timeline (frames of the 240-frame film; shots are hard cuts) ----------
@@ -44,24 +51,40 @@ export const MARGIN = 72;
 export const TEXTURE_OPACITY = 0.1;
 export const SEEDS = [7, 23] as const;
 
-// Where the cursor clicks and what the selection frames, as fractions of the screenshot frame. Tuned to a standard
-// landing page (hero centred, primary button under it) and a phone screen (full-width button at the bottom); any
-// upload still reads, since the click lands on the hero/button zone and the box frames the hero / the whole screen.
-type Rect = { x: number; y: number; w: number; h: number };
-export const TARGETS = {
-  wide: {
-    click: [0.447, 0.573] as const,
-    from: { x: 0.407, y: 0.547, w: 0.08, h: 0.053 },
-    to: { x: 0.29, y: 0.135, w: 0.42, h: 0.5 },
-    label: "1440 × 900",
-  },
-  tall: {
-    click: [0.5, 0.928] as const,
-    from: { x: 0.052, y: 0.896, w: 0.896, h: 0.064 },
-    to: { x: 0, y: 0, w: 1, h: 1 },
-    label: "390 × 844",
-  },
+// ---------- placements (user-movable; fractions of the visible screenshot slot) ----------
+// The slot's shape as drawn: a 16:10 page frame at 16:9, a 9:19.5 phone screen at 9:16. The image fills the slot's
+// width and crops from the top, so placements are fractions of the slot, not of the full upload.
+export const SLOT_ASPECT = { wide: 16 / 10, tall: 9 / 19.5 } as const;
+// Defaults, tuned to the samples: the CTA under the Lumen hero and the hero itself; the phone's bottom button and the
+// whole phone screen.
+export const CLICK_WIDE: Point = { x: 0.447, y: 0.573 };
+export const SELECT_WIDE: Area = { x: 0.29, y: 0.135, w: 0.42, h: 0.5 };
+export const CLICK_TALL: Point = { x: 0.5, y: 0.928 };
+export const SELECT_TALL: Area = { x: 0, y: 0, w: 1, h: 1 };
+export const PLACEMENT_DEFAULTS = {
+  clickPoint: pointValue(CLICK_WIDE),
+  selectArea: areaValue(SELECT_WIDE),
+  clickPointTall: pointValue(CLICK_TALL),
+  selectAreaTall: areaValue(SELECT_TALL),
 } as const;
+// The small pressed box the selection grows out of, centred on the click point (kept inside the slot).
+export const PRESS_BOX = { wide: { w: 0.08, h: 0.053 }, tall: { w: 0.12, h: 0.04 } } as const;
+// The reference page the size tag measures against: the 16:9 slot is a 1440×900 page, the phone a 390×844 screen.
+export const REF_PAGE = { wide: { w: 1440, h: 900 }, tall: { w: 390, h: 844 } } as const;
+
+const inside = (start: number, size: number) => Math.min(1 - size, Math.max(0, start));
+export const placements = (p: StatementProps, tall: boolean) => {
+  const click = tall ? parsePoint(p.clickPointTall, CLICK_TALL) : parsePoint(p.clickPoint, CLICK_WIDE);
+  const to = tall ? parseArea(p.selectAreaTall, SELECT_TALL) : parseArea(p.selectArea, SELECT_WIDE);
+  const box = tall ? PRESS_BOX.tall : PRESS_BOX.wide;
+  const from: Area = { x: inside(click.x - box.w / 2, box.w), y: inside(click.y - box.h / 2, box.h), w: box.w, h: box.h };
+  const ref = tall ? REF_PAGE.tall : REF_PAGE.wide;
+  const label = `${Math.round(to.w * ref.w)} × ${Math.round(to.h * ref.h)}`;
+  // Whether each placement is still the default, so the prompt can name the element it sits on.
+  const clickIsDefault = pointValue(click) === pointValue(tall ? CLICK_TALL : CLICK_WIDE);
+  const areaIsDefault = areaValue(to) === areaValue(tall ? SELECT_TALL : SELECT_WIDE);
+  return { click, from, to, label, clickIsDefault, areaIsDefault };
+};
 
 // ---------- colour ----------
 export const isDark = (hex: string) => {
@@ -188,7 +211,7 @@ const TypeShot: React.FC<{ text: string; seed: number; base: string; local: numb
 const CanvasShot: React.FC<{ p: StatementProps; local: number }> = ({ p, local }) => {
   const { u, width, height, isVertical } = useLayout();
   const L = isVertical ? SIZE.tall : SIZE.wide;
-  const tg = isVertical ? TARGETS.tall : TARGETS.wide;
+  const pl = placements(p, isVertical);
   const ink = textOn(p.field);
 
   // line 3, top-left
@@ -205,20 +228,27 @@ const CanvasShot: React.FC<{ p: StatementProps; local: number }> = ({ p, local }
   const src = isVertical ? p.phoneShot || SAMPLE.phone : p.screenshot || SAMPLE.site;
   const shadow = `0 ${u}px ${2 * u}px ${alpha(FILM.black, 0.04)}, 0 ${8 * u}px ${24 * u}px ${alpha(FILM.black, 0.06)}`;
 
-  // cursor: glides in from the bottom-right on an arc, clicks the button
-  const target: Pt = [x + tg.click[0] * w, y + tg.click[1] * h];
+  // cursor: glides in from the bottom-right on an arc, clicks at the click point (on the slot as it rises)
+  const c = pointOn(pl.click, x, y, w, h);
+  const target: Pt = [c.x, c.y];
   const start: Pt = [width + 40 * u, height + 60 * u];
   const cur = glide(start, target, progress(local, T.glide[0], T.glide[1], "travel"));
   const press = interpolate(local, [T.click - 3, T.click, T.click + 5], [0, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  // selection: grows from the clicked button to the hero (16:9) or the whole screen (9:16)
+  // selection: grows from the pressed element at the click point out to the selection area
   const s = progress(local, T.select[0], T.select[1], "enter");
-  const r: Rect = {
-    x: mix(tg.from.x, tg.to.x, s),
-    y: mix(tg.from.y, tg.to.y, s),
-    w: mix(tg.from.w, tg.to.w, s),
-    h: mix(tg.from.h, tg.to.h, s),
-  };
+  const r = areaOn(
+    {
+      x: mix(pl.from.x, pl.to.x, s),
+      y: mix(pl.from.y, pl.to.y, s),
+      w: mix(pl.from.w, pl.to.w, s),
+      h: mix(pl.from.h, pl.to.h, s),
+    },
+    x,
+    y,
+    w,
+    h,
+  );
 
   return (
     <>
@@ -240,8 +270,10 @@ const CanvasShot: React.FC<{ p: StatementProps; local: number }> = ({ p, local }
         <Rise rows={rows} local={local} left />
       </div>
       <Screenshot src={src} x={x} y={y} w={w} h={h} radius={L.radius * u} line={alpha(FILM.black, 0.06)} shadow={shadow} style={{ opacity: fade }} />
-      <SelectionBox u={u} x={x + r.x * w} y={y + r.y * h} w={r.w * w} h={r.h * h} color={FILM.select} label={tg.label} t={local >= T.select[0] ? s : 0} />
-      <Cursor u={u} x={cur[0]} y={cur[1]} name={p.cursorName} color={CURSOR_COLORS.pink} press={press} scale={L.cursor} />
+      {p.showSelection !== false ? (
+        <SelectionBox u={u} x={r.x} y={r.y} w={r.w} h={r.h} color={FILM.select} label={pl.label} t={local >= T.select[0] ? s : 0} />
+      ) : null}
+      {p.showCursor !== false ? <Cursor u={u} x={cur[0]} y={cur[1]} name={p.cursorName} color={CURSOR_COLORS.pink} press={press} scale={L.cursor} /> : null}
     </>
   );
 };

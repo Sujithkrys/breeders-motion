@@ -60,7 +60,7 @@ export function OptionsPanel({ def, props, ratio, tab, onTabChange, target, onTa
       case "code":
         return <CodeTab def={def} props={props} />;
       case "edit":
-        return <EditTab def={def} props={props} onChange={onPropChange} onReset={onReset} />;
+        return <EditTab def={def} props={props} ratio={ratio} onChange={onPropChange} onReset={onReset} />;
       case "export":
         return <ExportTab def={def} props={props} ratio={ratio} />;
     }

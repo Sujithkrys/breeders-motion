@@ -16,15 +16,26 @@ export type PropValue = string | number | boolean;
 export type MotionProps = Record<string, PropValue>;
 
 // Editor controls, generated into the Edit tab. `key` is a key of the component's props.
-export type ControlDef =
+// Every control may also set:
+// - `ratio`: show it only while that ratio is selected (for placements on a ratio-specific image).
+// - `when`: the key of a boolean prop; the control shows only while that prop is true (a placement under its toggle).
+export type ControlDef = (
   | { type: "text"; key: string; label: string; maxLength?: number }
+  // Colours are "#RRGGBB", or "#RRGGBBAA" when the picker's opacity is below 100%.
   | { type: "color"; key: string; label: string }
   | { type: "select"; key: string; label: string; options: { label: string; value: string }[] }
   | { type: "number"; key: string; label: string; min: number; max: number; step: number; unit?: string }
   | { type: "toggle"; key: string; label: string }
   // An uploaded file (logo, screenshot). The value is a URL: a bundled sample path under /templates/ by default,
   // or a blob: URL for the user's own file, which never leaves the browser and is kept out of shared links.
-  | { type: "image"; key: string; label: string; hint?: string };
+  | { type: "image"; key: string; label: string; hint?: string }
+  // Placements on an image (see placement.ts): `image` is the key of the image prop they are drawn over, and
+  // `aspect` (width / height) is the shape of the slot the template shows it in. The editor shows the image the way
+  // `Screenshot` does (width-fitted, cropped from the top), so fractions are of the visible slot, as in the video.
+  // An area is "x,y,w,h" (a selection box, a zoom target); a point is "x,y" (where a cursor clicks).
+  | { type: "area"; key: string; label: string; image: string; aspect: number; hint?: string }
+  | { type: "point"; key: string; label: string; image: string; aspect: number; hint?: string }
+) & { ratio?: Ratio; when?: string };
 
 // A colourway: a named set of colour props applied together. The first palette is the default look.
 // `swatch` is 2–4 colours used to draw the palette button.

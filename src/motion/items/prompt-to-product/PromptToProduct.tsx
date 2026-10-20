@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, interpolate } from "remotion";
 import { CANVAS, FONT_MONO, FONT_SANS, STAGGER, STROKE, alpha, progress, useLayout } from "../../kit";
 import { CURSOR_COLORS, Cursor, FILM, Logo, Screenshot, SelectionBox, useShot } from "../../film";
+import { areaOn, parseArea, parsePoint, pointOn, type Area, type Point } from "../../placement";
 
 export type PromptToProductProps = {
   prompt: string;
@@ -11,6 +12,12 @@ export type PromptToProductProps = {
   logo: string;
   screenshot: string;
   phoneShot: string;
+  showCursor: boolean;
+  showSelection: boolean;
+  selectArea: string; // 16:9, fractions of the page frame (see placement.ts)
+  leoPoint: string;
+  selectAreaTall: string; // 9:16, fractions of the phone frame
+  leoPointTall: string;
   field: string;
   canvas: string;
   end: string;
@@ -43,7 +50,7 @@ export const GEO = {
     frame: { w: 1240, h: 775, r: 20 },
     title: 96,
     logo: 44,
-    size: "1440 × 900",
+    page: { w: 1440, h: 900 }, // reference page the size tag measures in
     device: "Desktop",
   },
   tall: {
@@ -51,10 +58,31 @@ export const GEO = {
     frame: { w: 640, h: Math.round((640 * 19.5) / 9), r: 48 },
     title: 104,
     logo: 52,
-    size: "390 × 844",
+    page: { w: 390, h: 844 },
     device: "Mobile",
   },
 } as const;
+
+// Slot shapes for the placement controls: the screenshot fills the frame's width and crops from the top.
+export const FRAME_ASPECT = { wide: GEO.wide.frame.w / GEO.wide.frame.h, tall: GEO.tall.frame.w / GEO.tall.frame.h } as const;
+
+// Default placements, tuned to the sample screenshots: the box frames the whole page, Leo lands right of centre.
+export const SELECT_AREA: Area = { x: 0, y: 0, w: 1, h: 1 };
+export const LEO_POINT: Point = { x: 0.8, y: 0.6 };
+export const SELECT_AREA_TALL: Area = { x: 0, y: 0, w: 1, h: 1 };
+export const LEO_POINT_TALL: Point = { x: 0.8, y: 0.6 };
+
+// The placements for the current ratio, parsed (malformed values fall back to the defaults).
+export const placementsFor = (p: PromptToProductProps, vertical: boolean) =>
+  vertical
+    ? { area: parseArea(p.selectAreaTall, SELECT_AREA_TALL), leo: parsePoint(p.leoPointTall, LEO_POINT_TALL) }
+    : { area: parseArea(p.selectArea, SELECT_AREA), leo: parsePoint(p.leoPoint, LEO_POINT) };
+
+// Size tag: the selected area measured on the reference page ("1440 × 900" for the whole desktop page).
+export const sizeLabel = (page: { w: number; h: number }, a: Area) => `${Math.round(page.w * a.w)} × ${Math.round(page.h * a.h)}`;
+
+// Size tag box, as drawn by SelectionBox: 30 tall, 12 from the box, Inter 500 16 with 10 padding.
+export const TAG = { h: 30, gap: 12, pad: 10, type: 16, r: 6 } as const;
 
 export const BOX_RADIUS = 32;
 export const MARGIN = 72;
@@ -234,7 +262,7 @@ export const PromptToProduct: React.FC<PromptToProductProps> = (p) => {
             </svg>
           </div>
         </div>
-        <Cursor u={u} x={cx} y={cy} name={p.cursorName} color={CURSOR_COLORS.pink} press={press} scale={1.4} />
+        {p.showCursor ? <Cursor u={u} x={cx} y={cy} name={p.cursorName} color={CURSOR_COLORS.pink} press={press} scale={1.4} /> : null}
       </>
     );
   };
@@ -270,8 +298,21 @@ export const PromptToProduct: React.FC<PromptToProductProps> = (p) => {
     const reveal = progress(local, T.reveal[0], T.reveal[1], "travel");
     const sel = progress(local, T.select[0], T.select[1], "enter");
     const leoStart: Pt = [W + 60 * u, fy + fh * 0.3];
-    const leoEnd: Pt = [fx + fw * 0.8, fy + fh * 0.6];
+    const place = placementsFor(p, isVertical);
+    const leoAt = pointOn(place.leo, fx, fy, fw, fh);
+    const leoEnd: Pt = [leoAt.x, leoAt.y];
     const [lx, ly] = glide(leoStart, leoEnd, progress(local, T.leo[0], T.leo[1], "travel"));
+
+    // Selection box on the chosen area of the frame. Its size tag sits 12 below, centred; if that would leave the
+    // video frame it flips above the box, and it is nudged sideways to stay inside.
+    const box = areaOn(place.area, fx, fy, fw, fh);
+    const label = sizeLabel(g.page, place.area);
+    const tagH = TAG.h * u;
+    const tagW = (label.length * TAG.type * 0.6 + 2 * TAG.pad) * u; // Inter 500 at 16: about 0.6em a glyph, generous
+    const edge = 24 * u;
+    const below = box.y + box.h + TAG.gap * u;
+    const tagY = below + tagH <= H - edge ? below : box.y - TAG.gap * u - tagH;
+    const tagX = Math.min(W - edge - tagW / 2, Math.max(edge + tagW / 2, box.x + box.w / 2));
     return (
       <>
         <div
@@ -316,8 +357,35 @@ export const PromptToProduct: React.FC<PromptToProductProps> = (p) => {
         </div>
         {finished ? (
           <>
-            <SelectionBox u={u} x={fx} y={fy} w={fw} h={fh} color={FILM.select} label={g.size} t={sel} />
-            <Cursor u={u} x={lx} y={ly} name="Leo" color={CURSOR_COLORS.green} scale={1.4} />
+            {p.showSelection ? (
+              <>
+                <SelectionBox u={u} x={box.x} y={box.y} w={box.w} h={box.h} color={FILM.select} t={sel} />
+                {sel > 0 ? (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: tagX,
+                      top: tagY,
+                      transform: "translateX(-50%)",
+                      height: tagH,
+                      padding: `0 ${TAG.pad * u}px`,
+                      borderRadius: TAG.r * u,
+                      background: FILM.select,
+                      color: FILM.white,
+                      fontFamily: FONT_SANS,
+                      fontSize: TAG.type * u,
+                      fontWeight: 500,
+                      lineHeight: `${tagH}px`,
+                      whiteSpace: "nowrap",
+                      opacity: Math.min(1, sel * 1.5),
+                    }}
+                  >
+                    {label}
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+            {p.showCursor ? <Cursor u={u} x={lx} y={ly} name="Leo" color={CURSOR_COLORS.green} scale={1.4} /> : null}
           </>
         ) : null}
       </>

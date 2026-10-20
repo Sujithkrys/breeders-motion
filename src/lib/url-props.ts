@@ -1,8 +1,9 @@
 // Edited props travel in the URL as `?p=`: base64url-encoded JSON holding only the keys that differ from the
 // component's defaults, so shared links stay short and unedited pages keep a clean URL.
+import { isAreaValue, isPointValue } from "@/motion/placement";
 import type { AnyMotionDef, ControlDef, MotionProps, PropValue } from "@/motion/types";
 
-const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const HEX_COLOR = /^#[0-9a-f]{6}([0-9a-f]{2})?$/i;
 
 // Colours compare case-insensitively: the native colour picker reports lowercase hex while defs use uppercase.
 export const sameValue = (a: PropValue | undefined, b: PropValue | undefined) => {
@@ -56,6 +57,8 @@ const acceptValue = (control: ControlDef | undefined, fallback: PropValue, value
     if (control?.type === "color" && !HEX_COLOR.test(value) && value !== "transparent") return undefined;
     // Only bundled sample images are linkable; anything else could point the player at an outside URL.
     if (control?.type === "image" && !value.startsWith("/templates/")) return undefined;
+    if (control?.type === "area" && !isAreaValue(value)) return undefined;
+    if (control?.type === "point" && !isPointValue(value)) return undefined;
     if (control?.type === "text" && control.maxLength !== undefined) return value.slice(0, control.maxLength);
     return value.slice(0, 500);
   }
