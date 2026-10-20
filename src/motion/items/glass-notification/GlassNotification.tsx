@@ -50,7 +50,7 @@ export const GlassNotification: React.FC<GlassNotificationProps> = (p) => {
     { app: p.app3, msg: p.msg3, icon: p.icon3 },
   ];
   const drops = items.map((_, i) => progress(frame, FIRST_DROP + i * p.stagger, FIRST_DROP + i * p.stagger + DROP_LEN, p.ease));
-  const out = progress(frame, EXIT_AT, durationInFrames - 8, "soft");
+  const out = progress(frame, EXIT_AT, durationInFrames - 8, "travel");
   const phase = (frame / durationInFrames) * Math.PI * 2;
 
   const glass: React.CSSProperties = light

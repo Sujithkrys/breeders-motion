@@ -63,7 +63,7 @@ export const ChatThread: React.FC<ChatThreadProps> = (p) => {
 
         {beats.map((b, i) => {
           const show = progress(frame, b.at, b.at + 14, p.ease);
-          const typing = b.typing < 0 ? 0 : progress(frame, b.typing, b.typing + 8, p.ease) * (1 - progress(frame, b.at - 2, b.at + 3, "soft"));
+          const typing = b.typing < 0 ? 0 : progress(frame, b.typing, b.typing + 8, p.ease) * (1 - progress(frame, b.at - 2, b.at + 3, "travel"));
           const corner = b.out ? `${r}px ${r}px ${tail}px ${r}px` : `${r}px ${r}px ${r}px ${tail}px`;
           return (
             <div key={i} style={{ position: "relative", display: "flex", justifyContent: b.out ? "flex-end" : "flex-start", marginTop: (i === 0 ? 0 : 22) * u }}>

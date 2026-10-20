@@ -27,7 +27,7 @@ export default defineMotion<CheckoutMorphProps>({
     done: "Payment complete",
     detail: "Receipt sent to your inbox",
     spin: 36,
-    ease: "smooth",
+    ease: "enter",
   } as CheckoutMorphProps,
   palettes,
   controls: [

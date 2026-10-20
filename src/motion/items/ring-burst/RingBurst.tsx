@@ -40,7 +40,7 @@ export const RingBurst: React.FC<RingBurstProps> = (p) => {
   const n = Math.max(2, Math.round(p.rings));
   const box = Math.max(B * 3.4, 1500 * u);
 
-  const flash = progress(frame, tl.flash[0], tl.flash[1], "smooth");
+  const flash = progress(frame, tl.flash[0], tl.flash[1], "enter");
   const pop = spring({ frame: frame - tl.pop, fps, config: { damping: 10, stiffness: 120, mass: 0.9 } });
   const mono = progress(frame, tl.mono[0], tl.mono[1], p.ease);
   const text = progress(frame, tl.text[0], tl.text[1], p.ease);
@@ -50,7 +50,7 @@ export const RingBurst: React.FC<RingBurstProps> = (p) => {
     const k = progress(frame, s, s + tl.ringDur, p.ease);
     if (k <= 0 || k >= 1) return null;
     const r = mix(B * 0.12, B * 0.5 + 430 * u * (1 + i * 0.1), k);
-    const fadeIn = progress(frame, s, s + 4, "soft");
+    const fadeIn = progress(frame, s, s + 4, "travel");
     return <circle key={i} r={r} fill="none" stroke={p.ringColor} strokeOpacity={(i % 2 === 0 ? 0.9 : 0.5) * fadeIn * Math.pow(1 - k, 1.3)} strokeWidth={mix(14, 1, k) * u} />;
   });
 

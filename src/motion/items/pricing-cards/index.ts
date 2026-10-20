@@ -26,7 +26,7 @@ export default defineMotion<PricingCardsProps>({
     badge: "Popular",
     discount: 20,
     stagger: 6,
-    ease: "smooth",
+    ease: "enter",
   } as PricingCardsProps,
   palettes,
   controls: [

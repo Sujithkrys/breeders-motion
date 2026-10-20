@@ -30,7 +30,7 @@ export default defineMotion<GlassNotificationProps>({
     app3: "Orders",
     msg3: "Your order is out for delivery",
     stagger: 30,
-    ease: "smooth",
+    ease: "enter",
   } as GlassNotificationProps,
   palettes,
   controls: [

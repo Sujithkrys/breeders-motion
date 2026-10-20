@@ -27,7 +27,7 @@ export default defineMotion<FloatingCubesProps>({
     grid: 5,
     height: 0.9,
     waves: 1,
-    ease: "soft",
+    ease: "travel",
   } as FloatingCubesProps,
   palettes,
   controls: [

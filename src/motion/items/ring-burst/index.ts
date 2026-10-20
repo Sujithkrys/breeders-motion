@@ -27,7 +27,7 @@ export default defineMotion<RingBurstProps>({
     name: "Kiln Coffee",
     tagline: "Roasted daily",
     rings: 5,
-    ease: "smooth",
+    ease: "enter",
   } as RingBurstProps,
   palettes,
   controls: [

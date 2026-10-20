@@ -79,13 +79,13 @@ export const BarChartRise: React.FC<BarChartRiseProps> = (p) => {
   const start = 22;
   const dur = 34;
   const st = Math.min(p.stagger, (durationInFrames * 0.7 - start - dur) / Math.max(1, n - 1));
-  const head = progress(frame, 0, 22, "smooth");
+  const head = progress(frame, 0, 22, "enter");
 
   const hiStart = start + hi * st;
-  const count = progress(frame, hiStart, hiStart + dur + 6, "smooth");
+  const count = progress(frame, hiStart, hiStart + dur + 6, "enter");
   const first = values[0];
   const deltaPct = first > 0 ? ((values[n - 1] - first) / first) * 100 : null;
-  const chip = progress(frame, hiStart + dur, hiStart + dur + 14, "smooth");
+  const chip = progress(frame, hiStart + dur, hiStart + dur + 14, "enter");
 
   const mono: React.CSSProperties = { fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums" };
 
@@ -145,7 +145,7 @@ export const BarChartRise: React.FC<BarChartRiseProps> = (p) => {
       <svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }}>
         {Array.from({ length: tickCount + 1 }, (_, k) => {
           const y = base - (k / tickCount) * chartH;
-          const g = progress(frame, 4 + k * 3, 30 + k * 3, "smooth");
+          const g = progress(frame, 4 + k * 3, 30 + k * 3, "enter");
           return (
             <line
               key={k}
@@ -173,7 +173,7 @@ export const BarChartRise: React.FC<BarChartRiseProps> = (p) => {
               fontSize: 20 * u,
               lineHeight: `${26 * u}px`,
               color: p.muted,
-              opacity: progress(frame, 8 + k * 3, 30 + k * 3, "smooth"),
+              opacity: progress(frame, 8 + k * 3, 30 + k * 3, "enter"),
             }}
           >
             {fmt(k * step, step % 1 === 0 ? 0 : 1)}
@@ -188,8 +188,8 @@ export const BarChartRise: React.FC<BarChartRiseProps> = (p) => {
         const h = Math.max(0, (v / top) * chartH * g);
         const x = left + i * slot + (slot - barW) / 2;
         const isHi = i === hi;
-        const lbl = progress(frame, s0 + dur * 0.55, s0 + dur, "smooth");
-        const shown = v * Math.min(1, progress(frame, s0, s0 + dur, "smooth"));
+        const lbl = progress(frame, s0 + dur * 0.55, s0 + dur, "enter");
+        const shown = v * Math.min(1, progress(frame, s0, s0 + dur, "enter"));
         return (
           <React.Fragment key={i}>
             <div
@@ -233,7 +233,7 @@ export const BarChartRise: React.FC<BarChartRiseProps> = (p) => {
                 fontWeight: isHi ? 600 : 400,
                 color: isHi ? p.ink : p.muted,
                 whiteSpace: "nowrap",
-                opacity: progress(frame, s0, s0 + 16, "smooth"),
+                opacity: progress(frame, s0, s0 + 16, "enter"),
               }}
             >
               {labels[i]}

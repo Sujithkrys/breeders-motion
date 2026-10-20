@@ -31,7 +31,7 @@ export default defineMotion<AgentStepsProps>({
     step4: "Formatting the brief",
     result: "launch-brief.md is ready",
     stagger: 22,
-    ease: "smooth",
+    ease: "enter",
   } as AgentStepsProps,
   palettes,
   controls: [
@@ -56,7 +56,7 @@ export default defineMotion<AgentStepsProps>({
       `Header: 68px ${p.accent} gradient icon square (radius 20), mono "AGENT TASK" label at 19px/0.14em, title "${p.task}" at 38px weight 600, -0.035em. Right: a ${p.accent} pill reading "Working" with a pulsing dot, which swaps to "Done" when all steps finish.`,
       `Four 78px step rows below a hairline divider: "${p.step1}", "${p.step2}", "${p.step3}", "${p.step4}" at 30px weight 500.`,
       `Step n fades and rises 18px at ${secs(FIRST_STEP, c.fps)} + n × ${secs(S, c.fps)}. While active it shows a 42px spinner (16px radius ring, ${p.accent} arc on a 12% track, rotating 14°/frame) and its label shimmers: dim at 42% with a bright copy revealed by a moving mask band.`,
-      `${secs(S - 6, c.fps)} after it starts, the spinner becomes a filled ${p.accent} check circle (scale 0.4 → 1, bouncy ${bezierText("bouncy")}), the check stroke draws on, the label settles at 90%, and a mono duration (1.4s, 2.1s, 0.9s, 3.2s) fades in on the right. A 2px connector line between icons fills with ${p.accent}.`,
+      `${secs(S - 6, c.fps)} after it starts, the spinner becomes a filled ${p.accent} check circle (scale 0.4 → 1, bouncy ${bezierText("spring")}), the check stroke draws on, the label settles at 90%, and a mono duration (1.4s, 2.1s, 0.9s, 3.2s) fades in on the right. A 2px connector line between icons fills with ${p.accent}.`,
       `At ${secs(allDone + 4, c.fps)} a result chip arrives: ${p.accent} at 12% fill with a 35% border, radius 24, file icon, "${p.result}" at 27px, and an arrow. It rises 22px and scales 0.96 → 1.`,
       `Ease ${p.ease} ${bezierText(p.ease)}. Hold the finished card to the end.`,
     ].join("\n");

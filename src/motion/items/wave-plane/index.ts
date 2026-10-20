@@ -27,7 +27,7 @@ export default defineMotion<WavePlaneProps>({
     amplitude: 0.6,
     frequency: 1,
     cycles: 1,
-    ease: "smooth",
+    ease: "enter",
   } as WavePlaneProps,
   palettes,
   controls: [

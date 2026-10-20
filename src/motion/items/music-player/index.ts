@@ -29,7 +29,7 @@ export default defineMotion<MusicPlayerProps>({
     artist: "Nova Lane",
     bars: 40,
     intensity: 0.7,
-    ease: "smooth",
+    ease: "enter",
   } as MusicPlayerProps,
   palettes,
   controls: [

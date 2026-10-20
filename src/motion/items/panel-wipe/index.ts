@@ -55,7 +55,7 @@ export default defineMotion<PanelWipeProps>({
     direction: "right",
     stagger: 4,
     skew: 12,
-    ease: "snappy",
+    ease: "travel",
   } as PanelWipeProps,
   palettes,
   controls: [

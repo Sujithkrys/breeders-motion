@@ -76,9 +76,9 @@ export const DonutFill: React.FC<DonutFillProps> = (p) => {
   const a = 14;
   const b = a + (p.sweep / 100) * durationInFrames;
   const s = Math.min(1, progress(frame, a, b, p.ease));
-  const head = progress(frame, 0, 22, "smooth");
-  const ring = progress(frame, 2, 26, "smooth");
-  const rowEase = easing("smooth");
+  const head = progress(frame, 0, 22, "enter");
+  const ring = progress(frame, 2, 26, "enter");
+  const rowEase = easing("enter");
   const mono: React.CSSProperties = { fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums" };
   const TAU = Math.PI * 2;
 

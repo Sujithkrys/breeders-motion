@@ -31,7 +31,7 @@ export default defineMotion<AccentColourSwapProps>({
     startSwatch: 1,
     secondSwatch: 2,
     cursorName: "Maya",
-    ease: "smooth",
+    ease: "enter",
   } as AccentColourSwapProps,
   palettes,
   controls: [

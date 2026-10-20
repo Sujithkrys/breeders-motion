@@ -26,7 +26,7 @@ export default defineMotion<OtpCodeProps>({
     title: "Enter verification code",
     code: "482913",
     speed: 7,
-    ease: "smooth",
+    ease: "enter",
   } as OtpCodeProps,
   palettes,
   controls: [

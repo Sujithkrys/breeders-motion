@@ -10,7 +10,8 @@ const palettes = [
   { name: "Cobalt", swatch: ["#0A1030", "#7C8CFF", "#EEF1FF"], values: { background: "#0A1030", ink: "#EEF1FF", quiet: "#39427A", accent: "#7C8CFF" } },
 ];
 
-const MOTION_OPTIONS = [{ label: "Linear", value: "linear" }, ...EASE_OPTIONS];
+// Linear first: a marquee is continuous motion, the one place the spec uses it.
+const MOTION_OPTIONS = [{ label: "Linear", value: "linear" }, ...EASE_OPTIONS.filter((o) => o.value !== "linear")];
 
 export default defineMotion<TypeMarqueeProps>({
   slug: "type-marquee",

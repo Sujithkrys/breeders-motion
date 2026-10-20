@@ -52,7 +52,7 @@ export const OtpCode: React.FC<OtpCodeProps> = (p) => {
   const blink = f < FIRST_DIGIT ? (Math.floor(f / 12) % 2 === 0 ? 1 : 0.15) : 1;
   const caretAlpha = blink * (1 - progress(f, FIRST_DIGIT + 5 * sp + 2, FIRST_DIGIT + 5 * sp + 8)) * enter;
   const verified = progress(f, doneF + 14, doneF + 28, p.ease);
-  const tick = progress(f, doneF + 18, doneF + 34, "smooth");
+  const tick = progress(f, doneF + 18, doneF + 34, "enter");
 
   return (
     <AbsoluteFill style={{ background: p.background, fontFamily: FONT_SANS, alignItems: "center", justifyContent: "center" }}>
@@ -82,10 +82,10 @@ export const OtpCode: React.FC<OtpCodeProps> = (p) => {
           <div style={{ position: "absolute", left: xs[2] + bw + gap / 2 + sep / 2 - 8 * u, top: bh / 2 - 1.5 * u, width: 16 * u, height: 3 * u, borderRadius: 2 * u, background: alpha(p.ink, 0.25) }} />
           {xs.map((x, i) => {
             const enterD = FIRST_DIGIT + i * sp;
-            const d = progress(f, enterD, enterD + 9, "bouncy");
+            const d = progress(f, enterD, enterD + 9, "spring");
             const focus = Math.max(0, 1 - Math.abs(caretPos - i)) * (1 - ok);
             const pulseAt = doneF + i * 3;
-            const pulse = progress(f, pulseAt, pulseAt + 8, "soft") - progress(f, pulseAt + 8, pulseAt + 20, "soft");
+            const pulse = progress(f, pulseAt, pulseAt + 8, "travel") - progress(f, pulseAt + 8, pulseAt + 20, "travel");
             return (
               <div
                 key={i}

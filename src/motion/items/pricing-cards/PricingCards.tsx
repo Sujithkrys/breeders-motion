@@ -72,7 +72,7 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
   const cards = PLANS.map((plan, i) => {
     const hot = i === 1;
     const rise = progress(f, 8 + i * p.stagger, 34 + i * p.stagger, p.ease);
-    const badgeIn = progress(f, 24 + i * p.stagger, 38 + i * p.stagger, "bouncy");
+    const badgeIn = progress(f, 24 + i * p.stagger, 38 + i * p.stagger, "spring");
     const roll = (j: number) => progress(f, 84 + i * 4 + j * 2, 100 + i * 4 + j * 2, p.ease);
     const capT = progress(f, 86 + i * 4, 100 + i * 4, p.ease);
     const yearly = yearlyPrice(plan.price, p.discount);

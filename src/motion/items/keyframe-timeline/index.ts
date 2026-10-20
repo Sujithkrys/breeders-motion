@@ -30,7 +30,7 @@ export default defineMotion<KeyframeTimelineProps>({
     cursorName: "Maya",
     stagger: 0.3,
     turns: 1,
-    ease: "smooth",
+    ease: "enter",
   } as KeyframeTimelineProps,
   palettes,
   controls: [

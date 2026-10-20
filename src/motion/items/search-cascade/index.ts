@@ -26,7 +26,7 @@ export default defineMotion<SearchCascadeProps>({
     query: "design",
     count: 5,
     stagger: 5,
-    ease: "smooth",
+    ease: "enter",
   } as SearchCascadeProps,
   palettes,
   controls: [

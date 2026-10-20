@@ -48,7 +48,7 @@ export default defineMotion<LeaderboardReorderProps>({
     from: "82,74,61,55,40",
     to: "71,96,58,83,64",
     stagger: 5,
-    ease: "smooth",
+    ease: "enter",
   } as LeaderboardReorderProps,
   palettes,
   controls: [

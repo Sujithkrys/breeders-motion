@@ -141,16 +141,16 @@ export const AreaStack: React.FC<AreaStackProps> = (p) => {
   const g1 = g0 + (p.reveal / 100) * durationInFrames;
   const g = Math.min(1, progress(frame, g0, g1, p.ease));
   const edgeX = left + cw * g;
-  const edgeOn = progress(frame, g0, g0 + 6, "smooth") * (1 - progress(frame, g1, g1 + 14, "smooth"));
-  const head = progress(frame, 0, 22, "smooth");
-  const legendCount = progress(frame, g0, g1, "smooth");
+  const edgeOn = progress(frame, g0, g0 + 6, "enter") * (1 - progress(frame, g1, g1 + 14, "enter"));
+  const head = progress(frame, 0, 22, "enter");
+  const legendCount = progress(frame, g0, g1, "enter");
   const mono: React.CSSProperties = { fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums" };
   const labelEvery = isVertical && n > 8 ? 2 : 1;
 
   const legend = (
     <div style={{ display: "flex", flexDirection: isVertical ? "row" : "column", flexWrap: "wrap", gap: isVertical ? `${14 * u}px ${36 * u}px` : 12 * u, alignItems: isVertical ? "center" : "flex-end" }}>
       {[2, 1, 0].map((k, row) => {
-        const on = progress(frame, 10 + row * 5, 28 + row * 5, "smooth");
+        const on = progress(frame, 10 + row * 5, 28 + row * 5, "enter");
         return (
           <div key={k} style={{ display: "flex", alignItems: "center", gap: 14 * u, opacity: on, transform: `translateY(${(1 - on) * 12 * u}px)` }}>
             <span style={{ width: 18 * u, height: 18 * u, borderRadius: 5 * u, background: colors[k] }} />
@@ -201,7 +201,7 @@ export const AreaStack: React.FC<AreaStackProps> = (p) => {
 
         {Array.from({ length: ticks + 1 }, (_, k) => {
           const y = bottom - (k / ticks) * ch;
-          const gl = progress(frame, 4 + k * 3, 30 + k * 3, "smooth");
+          const gl = progress(frame, 4 + k * 3, 30 + k * 3, "enter");
           return (
             <line
               key={k}
@@ -223,7 +223,7 @@ export const AreaStack: React.FC<AreaStackProps> = (p) => {
             const below = k === 0 ? null : tops[k - 1];
             const end = below ? below[below.length - 1].p1 : null;
             const base = below && end ? `L ${end.x} ${end.y} ${backward(below)}` : `L ${right} ${bottom} L ${left} ${bottom}`;
-            const on = progress(frame, g0 + k * 5, g0 + 16 + k * 5, "smooth");
+            const on = progress(frame, g0 + k * 5, g0 + 16 + k * 5, "enter");
             return (
               <g key={k} opacity={on}>
                 <path d={`M ${first.x} ${first.y} ${forward(segs)} ${base} Z`} fill={`url(#${id}-f${k})`} />
@@ -244,14 +244,14 @@ export const AreaStack: React.FC<AreaStackProps> = (p) => {
       {Array.from({ length: ticks + 1 }, (_, k) => {
         const y = bottom - (k / ticks) * ch;
         return (
-          <span key={k} style={{ ...mono, position: "absolute", right: width - left + 22 * u, top: y - 13 * u, fontSize: 20 * u, lineHeight: `${26 * u}px`, color: p.muted, opacity: progress(frame, 8 + k * 3, 30 + k * 3, "smooth") }}>
+          <span key={k} style={{ ...mono, position: "absolute", right: width - left + 22 * u, top: y - 13 * u, fontSize: 20 * u, lineHeight: `${26 * u}px`, color: p.muted, opacity: progress(frame, 8 + k * 3, 30 + k * 3, "enter") }}>
             {fmt(k * step)}
           </span>
         );
       })}
       {xs.map((x, i) =>
         i % labelEvery === 0 || i === n - 1 ? (
-          <span key={i} style={{ position: "absolute", left: x, top: bottom + 20 * u, transform: "translateX(-50%)", fontSize: 22 * u, color: p.muted, whiteSpace: "nowrap", opacity: progress(frame, 10, 30, "smooth") }}>
+          <span key={i} style={{ position: "absolute", left: x, top: bottom + 20 * u, transform: "translateX(-50%)", fontSize: 22 * u, color: p.muted, whiteSpace: "nowrap", opacity: progress(frame, 10, 30, "enter") }}>
             {MONTHS[i % 12]}
           </span>
         ) : null,

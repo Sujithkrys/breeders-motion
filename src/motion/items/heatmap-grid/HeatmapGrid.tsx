@@ -77,9 +77,9 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = (p) => {
   const dur = 14;
   const w = Math.min(p.wave, (durationInFrames * 0.7 - start - dur) / (n + 5));
   const doneAt = start + (n + 5) * w + dur;
-  const head = progress(frame, 0, 22, "smooth");
-  const count = progress(frame, start, doneAt, "smooth");
-  const labelsOn = progress(frame, 8, 28, "smooth");
+  const head = progress(frame, 0, 22, "enter");
+  const count = progress(frame, start, doneAt, "enter");
+  const labelsOn = progress(frame, 8, 28, "enter");
   const mono: React.CSSProperties = { fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums" };
   const fill = (lvl: number) => (lvl === 0 ? p.empty : alpha(p.cell, STEP_ALPHA[lvl - 1]));
 
@@ -173,7 +173,7 @@ export const HeatmapGrid: React.FC<HeatmapGridProps> = (p) => {
           ...mono,
           fontSize: 19 * u,
           color: p.muted,
-          opacity: progress(frame, doneAt - 10, doneAt + 6, "smooth"),
+          opacity: progress(frame, doneAt - 10, doneAt + 6, "enter"),
         }}
       >
         <span style={{ marginRight: 6 * u }}>Less</span>

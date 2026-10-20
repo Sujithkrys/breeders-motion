@@ -27,7 +27,7 @@ export default defineMotion<LetterWaveProps>({
     caption: "Motion that feels considered, not decorated.",
     stagger: 2,
     rotation: 12,
-    ease: "bouncy",
+    ease: "spring",
   } as LetterWaveProps,
   palettes,
   controls: [
@@ -48,7 +48,7 @@ export default defineMotion<LetterWaveProps>({
       `Background ${p.background}. Font Geist ${WAVE.base}px (shrink to fit 86% of the width; on 9:16 wrap by word at ${WAVE.baseVertical}px), weight 700, tracking -0.04em, centred.`,
       "Split the headline into one inline-block span per letter, keeping words together.",
       `Each letter starts 0.72em low, rotated ${p.rotation}° around its bottom centre, at 0 opacity with a 6px blur, and rises to rest over ${secs(WAVE.dur, c.fps)}.`,
-      `Letters stagger ${Number(st.toFixed(2))} frames apart from frame ${WAVE.start}. Ease ${p.ease} ${bezierText(p.ease)}${p.ease === "bouncy" ? ", so each letter overshoots upward and settles" : ""}.`,
+      `Letters stagger ${Number(st.toFixed(2))} frames apart from frame ${WAVE.start}. Ease ${p.ease} ${bezierText(p.ease)}${p.ease === "spring" ? ", so each letter overshoots upward and settles" : ""}.`,
       `Colour: each letter is ${p.accent} for the first 45% of its move, then blends to ${p.ink} as it lands, so a band of colour travels with the wave.`,
       p.caption.trim()
         ? `Under it, the caption "${p.caption}": 40px, weight 400, tracking -0.012em, ${p.quiet}, fading up 18px as the wave finishes.`

@@ -115,9 +115,9 @@ export const KeyframeTimeline: React.FC<KeyframeTimelineProps> = (p) => {
   // per row: start key, bar, end key, the clearing at the end, and the layer value shown in the card
   const rows = START.map((st, r) => {
     const c = S.clicks[r];
-    const out = progress(f, S.reset0 + r * 2, S.reset0 + r * 2 + 8, "smooth");
-    const inA = progress(f, c, c + 9, "bouncy");
-    const inB = progress(f, c + S.grow, c + S.grow + 9, "bouncy");
+    const out = progress(f, S.reset0 + r * 2, S.reset0 + r * 2 + 8, "enter");
+    const inA = progress(f, c, c + 9, "spring");
+    const inB = progress(f, c + S.grow, c + S.grow + 9, "spring");
     const bar = progress(f, c + 1, c + S.grow, p.ease) * (1 - out);
     const fromK = progress(f, c, c + 10, p.ease); // the layer jumps to its start state as its key lands
     const playK = ez(clamp01((sweepSec - st) / LEN[r]));
@@ -146,7 +146,7 @@ export const KeyframeTimeline: React.FC<KeyframeTimelineProps> = (p) => {
     pts.push([c - 3, K[r]], [c + 2, K[r]]);
   });
   pts.push([S.play - 3, P], [S.play + 3, P], [S.play + 26, R], [durationInFrames, R]);
-  const soft = easing("soft");
+  const soft = easing("travel");
   const cur = (i: 0 | 1) => interpolate(f, pts.map((q) => q[0]), pts.map((q) => q[1][i]), { easing: soft, extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const press = Math.min(1, S.clicks.reduce((m, c) => Math.max(m, bump(f, c, 3.5)), bump(f, S.play, 3.5)));
   const playPress = bump(f, S.play, 4);

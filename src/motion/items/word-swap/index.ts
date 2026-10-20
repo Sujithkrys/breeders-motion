@@ -26,7 +26,7 @@ export default defineMotion<WordSwapProps>({
     lead: "Build something",
     words: "fast, beautiful, yours",
     swap: 14,
-    ease: "snappy",
+    ease: "travel",
   } as WordSwapProps,
   palettes,
   controls: [

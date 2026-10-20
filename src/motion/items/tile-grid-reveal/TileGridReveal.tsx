@@ -41,8 +41,8 @@ export const TileGridReveal: React.FC<TileGridRevealProps> = (p) => {
   const gap = S * 0.2;
   const fs = fitSize(p.name, (isVertical ? 116 : 120) * u, isVertical ? width * 0.86 : width * 0.84 - S - gap);
   const grad = `linear-gradient(135deg, ${p.tileA}, ${p.tileB})`;
-  const fuse = progress(frame, tl.fuse[0], tl.fuse[1], "soft");
-  const bump = Math.sin(Math.PI * progress(frame, tl.fuse[0], tl.fuse[1] + 4, "smooth"));
+  const fuse = progress(frame, tl.fuse[0], tl.fuse[1], "travel");
+  const bump = Math.sin(Math.PI * progress(frame, tl.fuse[0], tl.fuse[1] + 4, "enter"));
   const w = progress(frame, tl.name[0], tl.name[1], p.ease);
   const g = 6 * u * (1 - fuse);
   const rIn = 8 * u * (1 - fuse);
@@ -58,7 +58,7 @@ export const TileGridReveal: React.FC<TileGridRevealProps> = (p) => {
     for (let c = 0; c < GRID; c++) {
       const s = tl.start(r, c);
       const k = progress(frame, s, s + tl.dur, p.ease);
-      const o = progress(frame, s, s + tl.dur * 0.4, "soft");
+      const o = progress(frame, s, s + tl.dur * 0.4, "travel");
       const x = c * T + g / 2;
       const y = r * T + g / 2;
       const shade = 0.5 * (1 - k);
@@ -126,7 +126,7 @@ export const TileGridReveal: React.FC<TileGridRevealProps> = (p) => {
           <div style={{ position: "absolute", width: S, height: S, zIndex: 1, ...(isVertical ? { top: -S, left: "50%", marginLeft: -S / 2 } : { left: -S, top: "50%", marginTop: -S / 2 }) }}>{mark}</div>
           {/* the name slides out from under the mark's edge */}
           <div style={{ overflow: "hidden" }}>
-            <div style={{ ...nameStyle, opacity: progress(frame, tl.name[0], tl.name[0] + 6, "soft"), transform: isVertical ? `translateY(${-100 * (1 - w)}%)` : `translateX(${-100 * (1 - w)}%)` }}>{p.name}</div>
+            <div style={{ ...nameStyle, opacity: progress(frame, tl.name[0], tl.name[0] + 6, "travel"), transform: isVertical ? `translateY(${-100 * (1 - w)}%)` : `translateX(${-100 * (1 - w)}%)` }}>{p.name}</div>
           </div>
         </div>
       </div>

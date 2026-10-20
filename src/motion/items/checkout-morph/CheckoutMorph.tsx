@@ -35,16 +35,16 @@ export const CheckoutMorph: React.FC<CheckoutMorphProps> = (p) => {
   const ok = SPIN_AT + p.spin;
 
   const enter = progress(frame, 0, 14, p.ease);
-  const cursorIn = progress(frame, 4, CLICK_AT - 2, "smooth");
-  const cursorOut = progress(frame, MORPH_AT + 2, MORPH_AT + 12, "soft");
+  const cursorIn = progress(frame, 4, CLICK_AT - 2, "enter");
+  const cursorOut = progress(frame, MORPH_AT + 2, MORPH_AT + 12, "travel");
   const press = interpolate(frame, [CLICK_AT, CLICK_AT + 4, CLICK_AT + 10], [1, 0.95, 1], clamp);
   const m = progress(frame, MORPH_AT, MORPH_AT + 18, p.ease);
-  const labelOut = progress(frame, MORPH_AT, MORPH_AT + 8, "soft");
-  const spinIn = progress(frame, SPIN_AT - 4, SPIN_AT + 4, "soft");
-  const s = progress(frame, ok, ok + 10, "soft");
-  const check = progress(frame, ok + 4, ok + 16, "smooth");
+  const labelOut = progress(frame, MORPH_AT, MORPH_AT + 8, "travel");
+  const spinIn = progress(frame, SPIN_AT - 4, SPIN_AT + 4, "travel");
+  const s = progress(frame, ok, ok + 10, "travel");
+  const check = progress(frame, ok + 4, ok + 16, "enter");
   const pop = interpolate(frame, [ok, ok + 6, ok + 14], [1, 1.1, 1], clamp);
-  const ring = progress(frame, ok + 2, ok + 26, "soft");
+  const ring = progress(frame, ok + 2, ok + 26, "travel");
   const line = progress(frame, ok + 12, ok + 28, p.ease);
 
   const bw = mix(BTN.w, BTN.h, m) * u;

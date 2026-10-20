@@ -52,12 +52,12 @@ export const CalendarInvite: React.FC<CalendarInviteProps> = (p) => {
     const t = progress(f, from, from + 16, p.ease);
     return { opacity: t, transform: `translateY(${(1 - t) * 14 * u}px)` };
   };
-  const dateIn = progress(f, 10, 28, "bouncy");
-  const pressDown = progress(f, PRESS_FRAME - 4, PRESS_FRAME, "soft") - progress(f, PRESS_FRAME, PRESS_FRAME + 8, "soft");
+  const dateIn = progress(f, 10, 28, "spring");
+  const pressDown = progress(f, PRESS_FRAME - 4, PRESS_FRAME, "travel") - progress(f, PRESS_FRAME, PRESS_FRAME + 8, "travel");
   const done = progress(f, PRESS_FRAME + 4, PRESS_FRAME + 18, p.ease);
-  const check = progress(f, PRESS_FRAME + 8, PRESS_FRAME + 24, "smooth");
+  const check = progress(f, PRESS_FRAME + 8, PRESS_FRAME + 24, "enter");
   const cursorT = progress(f, 66, PRESS_FRAME - 4, p.ease);
-  const cursorOut = progress(f, PRESS_FRAME + 20, PRESS_FRAME + 36, "smooth");
+  const cursorOut = progress(f, PRESS_FRAME + 20, PRESS_FRAME + 36, "enter");
   const av = 64 * u;
 
   return (
@@ -115,7 +115,7 @@ export const CalendarInvite: React.FC<CalendarInviteProps> = (p) => {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center" }}>
             {GUESTS.map((g, i) => {
-              const t = progress(f, 34 + i * p.stagger, 50 + i * p.stagger, "bouncy");
+              const t = progress(f, 34 + i * p.stagger, 50 + i * p.stagger, "spring");
               const col = hexMix(p.avatarA, p.avatarB, i / (GUESTS.length - 1));
               return (
                 <div
@@ -144,7 +144,7 @@ export const CalendarInvite: React.FC<CalendarInviteProps> = (p) => {
               );
             })}
             {(() => {
-              const t = progress(f, 34 + GUESTS.length * p.stagger, 50 + GUESTS.length * p.stagger, "bouncy");
+              const t = progress(f, 34 + GUESTS.length * p.stagger, 50 + GUESTS.length * p.stagger, "spring");
               return (
                 <div
                   style={{

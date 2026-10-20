@@ -109,7 +109,7 @@ const slam = (t: number, dur: number, ease: string, amp: number) => {
   const k = clamp01((t - dur * 0.5) / dur);
   return progress(t, 0, dur, ease) + amp * Math.sin(Math.PI * k);
 };
-const blurAt = (t: number, u: number) => (t < SLAM ? 14 * u * (1 - progress(t, 0, SLAM * 0.8, "smooth")) : 0);
+const blurAt = (t: number, u: number) => (t < SLAM ? 14 * u * (1 - progress(t, 0, SLAM * 0.8, "enter")) : 0);
 const blurCss = (px: number) => (px > 0.3 ? `blur(${px.toFixed(2)}px)` : undefined);
 
 // The film's directional ghost trail, kept to two faint copies during the slam only.
@@ -166,8 +166,8 @@ export const BlockType: React.FC<BlockTypeProps> = (p) => {
   const onB = idx % 2 === 1;
 
   // camera: a small settle on every cut plus a slow push through the beat
-  const settle = 1 + 0.025 * (1 - progress(l, 0, 8, "smooth"));
-  const drift = 1 + (idx === 3 ? 0.03 : 0.02) * progress(l, 0, len, "soft");
+  const settle = 1 + 0.025 * (1 - progress(l, 0, 8, "enter"));
+  const drift = 1 + (idx === 3 ? 0.03 : 0.02) * progress(l, 0, len, "travel");
   const cam: React.CSSProperties = { transform: `scale(${(settle * drift).toFixed(5)})`, transformOrigin: idx === 3 ? "0% 100%" : "50% 50%" };
 
   let content: React.ReactNode = null;

@@ -27,7 +27,7 @@ export default defineMotion<HighlightSweepProps>({
     mark1: "simple",
     mark2: "obvious",
     sweep: 16,
-    ease: "smooth",
+    ease: "enter",
   } as HighlightSweepProps,
   palettes,
   controls: [

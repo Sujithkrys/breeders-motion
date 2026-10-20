@@ -27,7 +27,7 @@ export default defineMotion<OrbitLockupProps>({
     name: "orbital",
     count: 9,
     turns: 2.5,
-    ease: "smooth",
+    ease: "enter",
   } as OrbitLockupProps,
   palettes,
   controls: [

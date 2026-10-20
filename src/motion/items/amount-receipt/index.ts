@@ -31,7 +31,7 @@ export default defineMotion<AmountReceiptProps>({
     note: "Studio rent, October",
     buttonLabel: "Send",
     reference: "TXN-8F3K-29QD",
-    ease: "smooth",
+    ease: "enter",
   } as AmountReceiptProps,
   palettes,
   controls: [
@@ -66,7 +66,7 @@ export default defineMotion<AmountReceiptProps>({
       `The button reshapes into "Share receipt" (4–30); its label swaps like a copy confirmation: "${p.buttonLabel}" rises out, "Share receipt" rises in from below, both through a light blur.`,
       `Receipt parts enter after the anchors start: check circle scales 0.6→1 (12–24) and its stroke draws on (16–30); "Sent" and the details rise 14px from a 6px blur; rows stagger every 3 frames from frame 16.`,
       `Hold the receipt; at ${f(T.back)} run the same windows mirrored (last in, first out) back to the sheet, and fade the cursor back in at its rest spot so the loop is seamless.`,
-      `Moves ease ${p.ease} ${bezierText(p.ease)}; fades ease soft ${bezierText("soft")}. All motion frame-driven.`,
+      `Moves ease ${p.ease} ${bezierText(p.ease)}; fades ease soft ${bezierText("travel")}. All motion frame-driven.`,
     ].join("\n");
   },
 });

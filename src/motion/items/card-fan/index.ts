@@ -30,7 +30,7 @@ export default defineMotion<CardFanProps>({
     last4: "2048",
     spread: 360,
     tilt: 9,
-    ease: "smooth",
+    ease: "enter",
   } as CardFanProps,
   palettes,
   controls: [

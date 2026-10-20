@@ -26,7 +26,7 @@ export default defineMotion<SplitSlideWordmarkProps>({
     wordmark: "Helix",
     tagline: "Design at the speed of thought",
     spread: 200,
-    ease: "snappy",
+    ease: "travel",
   } as SplitSlideWordmarkProps,
   palettes,
   controls: [

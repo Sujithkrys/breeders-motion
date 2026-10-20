@@ -52,7 +52,7 @@ export default defineMotion<LineChartDrawProps>({
     labels: "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct",
     values: "24,31,28,42,39,55,61,58,72,84",
     draw: 55,
-    ease: "smooth",
+    ease: "enter",
   } as LineChartDrawProps,
   palettes,
   controls: [

@@ -43,11 +43,11 @@ export const PromptComposer: React.FC<PromptComposerProps> = (p) => {
   const typing = frame >= TYPE_AT && frame < typeEnd;
   const sent = frame >= press + 4;
   const caretOn = sent ? 0 : typing ? 1 : Math.floor(frame / 15) % 2 === 0 ? 1 : 0;
-  const ready = progress(frame, TYPE_AT, TYPE_AT + 6, "soft");
-  const pulse = progress(frame, typeEnd, typeEnd + 16, "soft");
+  const ready = progress(frame, TYPE_AT, TYPE_AT + 6, "travel");
+  const pulse = progress(frame, typeEnd, typeEnd + 16, "travel");
   const pressScale = interpolate(frame, [press, press + 4, press + 12], [1, 0.86, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const breathe = 1 + 0.06 * Math.sin(pulse * Math.PI);
-  const stop = progress(frame, press + 4, press + 10, "soft");
+  const stop = progress(frame, press + 4, press + 10, "travel");
   const r = progress(frame, reply, reply + 18, p.ease);
   const respH = 4 * 22 + 3 * 20 + 16;
   const gap = 44;

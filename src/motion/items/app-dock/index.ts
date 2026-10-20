@@ -26,7 +26,7 @@ export default defineMotion<AppDockProps>({
     label: "Studio",
     magnify: 1.55,
     active: 4,
-    ease: "smooth",
+    ease: "enter",
   } as AppDockProps,
   palettes,
   controls: [

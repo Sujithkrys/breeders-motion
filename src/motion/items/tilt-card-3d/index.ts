@@ -29,7 +29,7 @@ export default defineMotion<TiltCard3DProps>({
     price: "$249",
     tilt: 12,
     depth: 70,
-    ease: "smooth",
+    ease: "enter",
   } as TiltCard3DProps,
   palettes,
   controls: [

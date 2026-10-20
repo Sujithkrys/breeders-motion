@@ -28,7 +28,7 @@ export default defineMotion<LiquidToggleProps>({
     onText: "On",
     stretch: 32,
     travel: 22,
-    ease: "smooth",
+    ease: "enter",
   } as LiquidToggleProps,
   palettes,
   controls: [

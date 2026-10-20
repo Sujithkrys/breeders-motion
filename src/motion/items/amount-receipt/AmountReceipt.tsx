@@ -208,18 +208,18 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
       ? progress(frame, T.morph + a, T.morph + b, ease)
       : 1 - progress(frame, T.back + T.len - b, T.back + T.len - a, ease);
 
-  const mOut = win(0, 10, "soft");
+  const mOut = win(0, 10, "travel");
   const mCard = win(2, 28);
   const mAmt = win(2, 28);
   const mBtn = win(4, 30);
   const mWho = win(5, 31);
   const mNote = win(8, 34);
-  const lblOut = win(4, 12, "soft");
-  const lblIn = win(10, 20, "soft");
+  const lblOut = win(4, 12, "travel");
+  const lblIn = win(10, 20, "travel");
   const mCheck = win(12, 24);
-  const mDraw = win(16, 30, "soft");
-  const mHead = win(14, 26, "soft");
-  const rowIn = (i: number) => win(16 + 3 * i, 30 + 3 * i, "soft");
+  const mDraw = win(16, 30, "travel");
+  const mHead = win(14, 26, "travel");
+  const rowIn = (i: number) => win(16 + 3 * i, 30 + 3 * i, "travel");
 
   // Card box, centred on the canvas.
   const cw = mix(S.w, R.w, mCard) * u;
@@ -261,9 +261,9 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
   // Cursor: rests just under the button, glides in on a slight arc, presses, then fades; returns before the loop point.
   const tip = { x: (S.button.x + S.button.w * 0.62 - S.w / 2) * u, y: (S.button.y + S.button.h * 0.56 - S.h / 2) * u };
   const rest = { x: tip.x + 170 * u, y: (S.button.y + S.button.h + 36 - S.h / 2) * u };
-  const go = progress(frame, T.cursorFrom, T.press, "smooth");
-  const gone = progress(frame, T.cursorOut[0], T.cursorOut[1], "soft");
-  const back = progress(frame, T.cursorIn[0], T.cursorIn[1], "soft");
+  const go = progress(frame, T.cursorFrom, T.press, "enter");
+  const gone = progress(frame, T.cursorOut[0], T.cursorOut[1], "travel");
+  const back = progress(frame, T.cursorIn[0], T.cursorIn[1], "travel");
   const returning = frame >= T.cursorIn[0];
   const curX = returning ? rest.x + (1 - back) * 20 * u : mix(rest.x, tip.x, go) + gone * 22 * u;
   const curY = returning ? rest.y + (1 - back) * 20 * u : mix(rest.y, tip.y, go) - Math.sin(Math.PI * go) * 46 * u + gone * 26 * u;

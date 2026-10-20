@@ -29,7 +29,7 @@ export default defineMotion<ChatThreadProps>({
     msg3: "Amazing. Drinks on me tonight",
     msg4: "Deal. 7pm at the usual place?",
     pace: 20,
-    ease: "smooth",
+    ease: "enter",
   } as ChatThreadProps,
   palettes,
   controls: [

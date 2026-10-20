@@ -29,7 +29,7 @@ export const EndCard: React.FC<EndCardProps> = (p) => {
   const id = React.useId().replace(/:/g, "");
   const tl = timeline(D, p.stagger);
   const k = (i: number) => progress(frame, tl.start(i), tl.start(i) + tl.dur, p.ease);
-  const fade = (i: number) => progress(frame, tl.start(i), tl.start(i) + tl.dur * 0.5, "soft");
+  const fade = (i: number) => progress(frame, tl.start(i), tl.start(i) + tl.dur * 0.5, "travel");
 
   const M = (isVertical ? 176 : 150) * u;
   const nameFs = Math.min((isVertical ? 116 : 120) * u, (width * 0.86) / (Math.max(p.name.length, 3) * 0.6));
@@ -38,8 +38,8 @@ export const EndCard: React.FC<EndCardProps> = (p) => {
   const k1 = k(1);
   const k2 = k(2);
   const k3 = k(3);
-  const sheen = progress(frame, tl.sheen[0], tl.sheen[1], "soft");
-  const nudge = Math.sin(Math.PI * progress(frame, tl.sheen[0] + 2, tl.sheen[1], "smooth"));
+  const sheen = progress(frame, tl.sheen[0], tl.sheen[1], "travel");
+  const nudge = Math.sin(Math.PI * progress(frame, tl.sheen[0] + 2, tl.sheen[1], "enter"));
   const glowW = 1400 * u;
 
   const blur = (t: number, px: number) => (t < 1 ? `blur(${(1 - t) * px * u}px)` : undefined);

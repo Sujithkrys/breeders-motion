@@ -27,7 +27,7 @@ export default defineMotion<CalendarInviteProps>({
     time: "Thu · 10:00 – 10:45 AM",
     location: "Studio 3B, 4th floor",
     stagger: 5,
-    ease: "smooth",
+    ease: "enter",
   } as CalendarInviteProps,
   palettes,
   controls: [

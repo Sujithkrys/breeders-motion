@@ -35,7 +35,7 @@ export const AgentSteps: React.FC<AgentStepsProps> = (p) => {
   const S = p.stagger;
   const allDone = FIRST_STEP + steps.length * S - 6;
   const enter = progress(frame, 0, 14, p.ease);
-  const done = progress(frame, allDone, allDone + 10, "soft");
+  const done = progress(frame, allDone, allDone + 10, "travel");
   const chip = progress(frame, allDone + 4, allDone + 18, p.ease);
   const light = isLight(p.background);
   const w = (ratio === "16:9" ? 940 : 880) * u;
@@ -89,12 +89,12 @@ export const AgentSteps: React.FC<AgentStepsProps> = (p) => {
           const at = FIRST_STEP + i * S;
           const doneAt = at + S - 6;
           const appear = progress(frame, at, at + 10, p.ease);
-          const d = progress(frame, doneAt, doneAt + 9, "bouncy");
-          const dLin = progress(frame, doneAt, doneAt + 9, "soft");
+          const d = progress(frame, doneAt, doneAt + 9, "spring");
+          const dLin = progress(frame, doneAt, doneAt + 9, "travel");
           const active = frame >= at && dLin < 1;
           const band = (((frame - at) * 3.4) % 150) - 25;
           const mask = `linear-gradient(90deg, transparent ${band - 18}%, #000 ${band}%, transparent ${band + 18}%)`;
-          const line = i < steps.length - 1 ? progress(frame, doneAt + 2, at + S + 6, "soft") : 0;
+          const line = i < steps.length - 1 ? progress(frame, doneAt + 2, at + S + 6, "travel") : 0;
           return (
             <div key={i} style={{ position: "relative", height: ROW * u, display: "flex", alignItems: "center", gap: 24 * u, opacity: appear, transform: `translateY(${(1 - appear) * 18 * u}px)` }}>
               {i < steps.length - 1 && (

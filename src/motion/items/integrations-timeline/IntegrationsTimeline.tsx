@@ -211,9 +211,9 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
 
   const tm = timing(p.stagger);
   const exitStart = Math.round(durationInFrames * TIMING.exitAt);
-  const out = 1 - progress(frame, exitStart, durationInFrames, "soft");
+  const out = 1 - progress(frame, exitStart, durationInFrames, "travel");
   const arrived = [0, 1, 2, 3, 4, 5].filter((o) => frame >= tm.arriveAt(o)).length;
-  const counterOn = progress(frame, tm.arriveAt(0) - 4, tm.arriveAt(0) + 6, "smooth") * out;
+  const counterOn = progress(frame, tm.arriveAt(0) - 4, tm.arriveAt(0) + 6, "enter") * out;
 
   const letters = lettersOf(p.tiles);
   const rows: [string, string][] = [[p.time1, p.label1], [p.time2, p.label2], [p.time3, p.label3], [p.time4, p.label4]];
@@ -253,7 +253,7 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
       <svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }}>
         {geo.map((r, i) => {
           const o = orderOf(i);
-          const lp = progress(frame, tm.lineAt(o), tm.lineAt(o) + TIMING.draw, "soft");
+          const lp = progress(frame, tm.lineAt(o), tm.lineAt(o) + TIMING.draw, "travel");
           if (lp <= 0) return null;
           return (
             <path key={i} d={r.d} fill="none" stroke={lineColor} strokeWidth={hair} strokeLinejoin="round" strokeDasharray={`${r.len * lp} ${r.len + 2}`} opacity={out} />
@@ -359,11 +359,11 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
       <svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }}>
         {geo.map((r, i) => {
           const o = orderOf(i);
-          const lp = progress(frame, tm.lineAt(o), tm.lineAt(o) + TIMING.draw, "soft");
+          const lp = progress(frame, tm.lineAt(o), tm.lineAt(o) + TIMING.draw, "travel");
           const headOp = clamp01(Math.min(lp, 1 - lp) * 10);
           const head = pointAt(r.pts, r.cum, r.len * lp);
           const port = L.ports[i < 3 ? 0 : 1];
-          const rp = progress(frame, tm.arriveAt(o), tm.arriveAt(o) + TIMING.ripple, "smooth");
+          const rp = progress(frame, tm.arriveAt(o), tm.arriveAt(o) + TIMING.ripple, "enter");
           return (
             <g key={i}>
               {headOp > 0 ? <circle cx={head.x} cy={head.y} r={5 * u} fill={p.accent} opacity={headOp * out} /> : null}
@@ -372,7 +372,7 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
           );
         })}
         {L.ports.map((pt, s) => {
-          const lit = progress(frame, tm.arriveAt(s), tm.arriveAt(s) + 8, "smooth") * out;
+          const lit = progress(frame, tm.arriveAt(s), tm.arriveAt(s) + 8, "enter") * out;
           return (
             <g key={s}>
               <circle cx={pt.x} cy={pt.y} r={6.5 * u} fill={p.card} stroke={darkCanvas ? alpha("#FFFFFF", 0.5) : alpha("#0E0F12", 0.3)} strokeWidth={hair} />

@@ -27,7 +27,7 @@ export default defineMotion<IsometricStackProps>({
     layers: 3,
     stagger: 5,
     drop: 3,
-    ease: "snappy",
+    ease: "travel",
   } as IsometricStackProps,
   palettes,
   controls: [

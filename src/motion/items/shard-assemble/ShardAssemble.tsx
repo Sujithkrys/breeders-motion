@@ -45,8 +45,8 @@ export const ShardAssemble: React.FC<ShardAssembleProps> = (p) => {
   const start0 = D * 0.04;
   const dur = D * 0.24;
   const lockAt = start0 + (SHARDS.length - 1) * p.stagger + dur;
-  const lock = progress(frame, lockAt - 3, lockAt + 4, "soft");
-  const bump = Math.sin(Math.PI * progress(frame, lockAt - 2, lockAt + 10, "smooth"));
+  const lock = progress(frame, lockAt - 3, lockAt + 4, "travel");
+  const bump = Math.sin(Math.PI * progress(frame, lockAt - 2, lockAt + 10, "enter"));
   const mono = progress(frame, lockAt - 2, lockAt + D * 0.12, p.ease);
   const nameStart = lockAt + D * 0.06;
   const nameEnd = Math.max(nameStart + D * 0.12, Math.min(nameStart + D * 0.2, D * 0.74));
@@ -79,7 +79,7 @@ export const ShardAssemble: React.FC<ShardAssembleProps> = (p) => {
     const rot = (random(`shard-r-${i}`) - 0.5) * 110;
     const s = start0 + ORDER[i] * p.stagger;
     const k = progress(frame, s, s + dur, p.ease);
-    const o = progress(frame, s, s + dur * 0.35, "soft");
+    const o = progress(frame, s, s + dur * 0.35, "travel");
     const glint = (i % 2 === 0 ? 0.22 : 0.08) * (1 - k);
     return (
       <div

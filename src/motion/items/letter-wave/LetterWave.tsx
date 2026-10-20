@@ -36,7 +36,7 @@ export const LetterWave: React.FC<LetterWaveProps> = (p) => {
   const fitChars = isVertical ? Math.max(1, ...words.map((w) => w.length)) : Math.max(1, p.text.trim().length);
   const fs = Math.min(base, (width * 0.86) / (fitChars * 0.56));
   const lastEnd = WAVE.start + Math.max(letters - 1, 0) * stagger + WAVE.dur;
-  const cap = progress(frame, lastEnd - 12, lastEnd + 14, "smooth");
+  const cap = progress(frame, lastEnd - 12, lastEnd + 14, "enter");
 
   let gi = 0;
   return (

@@ -47,7 +47,7 @@ export default defineMotion<BarChartRiseProps>({
     labels: "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
     values: "42,68,55,90,74,98,81",
     stagger: 5,
-    ease: "bouncy",
+    ease: "spring",
   } as BarChartRiseProps,
   palettes,
   controls: [

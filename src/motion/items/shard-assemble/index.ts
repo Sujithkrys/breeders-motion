@@ -27,7 +27,7 @@ export default defineMotion<ShardAssembleProps>({
     name: "Northwind",
     spread: 420,
     stagger: 3,
-    ease: "smooth",
+    ease: "enter",
   } as ShardAssembleProps,
   palettes,
   controls: [

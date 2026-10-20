@@ -76,7 +76,7 @@ export const IsometricStack: React.FC<IsometricStackProps> = (p) => {
     transform: `${scene} translate3d(${cx * s}px, ${cy * s}px, ${cz * s}px) ${orient}`,
   });
 
-  const firstIn = progress(frame, 0, FALL * 2, "smooth");
+  const firstIn = progress(frame, 0, FALL * 2, "enter");
 
   return (
     <AbsoluteFill style={{ background: p.background, alignItems: "center", justifyContent: "center" }}>

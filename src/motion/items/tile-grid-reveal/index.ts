@@ -27,7 +27,7 @@ export default defineMotion<TileGridRevealProps>({
     name: "Vantage",
     stagger: 2.5,
     flip: 110,
-    ease: "smooth",
+    ease: "enter",
   } as TileGridRevealProps,
   palettes,
   controls: [

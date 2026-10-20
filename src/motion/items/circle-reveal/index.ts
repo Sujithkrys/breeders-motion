@@ -55,7 +55,7 @@ export default defineMotion<CircleRevealProps>({
     titleB: "Lights on",
     origin: "center",
     ringWidth: 3,
-    ease: "smooth",
+    ease: "enter",
   } as CircleRevealProps,
   palettes,
   controls: [

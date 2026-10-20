@@ -67,9 +67,9 @@ export const UploadCard: React.FC<UploadCardProps> = (p) => {
   const H = rowTop + rowH + P;
 
   const enter = progress(f, 0, 18, p.ease);
-  const fall = progress(f, T.drop, T.land, "soft");
+  const fall = progress(f, T.drop, T.land, "travel");
   const hover = progress(f, T.drop + 8, T.drop + 20, p.ease) * (1 - progress(f, T.travel + 6, T.travel + 18, p.ease));
-  const squash = progress(f, T.land, T.land + 3, "soft") - progress(f, T.land + 3, T.land + 10, "soft");
+  const squash = progress(f, T.land, T.land + 3, "travel") - progress(f, T.land + 3, T.land + 10, "travel");
   const travel = progress(f, T.travel, T.travel + 16, p.ease);
   const rowIn = progress(f, T.travel + 2, T.travel + 16, p.ease);
 
@@ -79,14 +79,14 @@ export const UploadCard: React.FC<UploadCardProps> = (p) => {
   const cx = mix(W / 2, P + 24 * u + smallW / 2, travel);
   const cy = mix(zoneTop + zoneH / 2 - (1 - fall) * 460 * u, rowTop + rowH / 2, travel);
 
-  const raw = progress(f, T.upStart, T.upEnd, "soft");
+  const raw = progress(f, T.upStart, T.upEnd, "travel");
   // A small wobble on top of the eased curve so the upload reads as real network progress; it stays monotonic.
   const v = Math.min(1, Math.max(0, raw + 0.03 * Math.sin(raw * Math.PI * 3) * (1 - raw)));
   const pct = Math.round(v * 100);
   const speed = 5.2 + 1.4 * Math.sin(f * 0.23) + 0.6 * Math.sin(f * 0.61);
   const left = Math.max(1, Math.ceil(((1 - v) * size) / speed));
   const done = progress(f, T.done, T.done + 14, p.ease);
-  const tick = progress(f, T.done + 6, T.done + 22, "smooth");
+  const tick = progress(f, T.done + 6, T.done + 22, "enter");
   const zoneStroke = hexMix(hexMix(p.card, p.ink, 0.24), p.accent, hover);
 
   return (
@@ -179,7 +179,7 @@ export const UploadCard: React.FC<UploadCardProps> = (p) => {
           </div>
           <div style={{ position: "relative", width: 86 * u, height: 48 * u }}>
             <span style={{ position: "absolute", right: 0, top: 8 * u, fontFamily: FONT_MONO, fontSize: 24 * u, fontWeight: 500, color: p.ink, opacity: 1 - done }}>{pct}%</span>
-            <svg width={48 * u} height={48 * u} viewBox="0 0 24 24" style={{ position: "absolute", right: 0, top: 0, opacity: done, transform: `scale(${mix(0.4, 1, progress(f, T.done, T.done + 14, "bouncy"))})` }}>
+            <svg width={48 * u} height={48 * u} viewBox="0 0 24 24" style={{ position: "absolute", right: 0, top: 0, opacity: done, transform: `scale(${mix(0.4, 1, progress(f, T.done, T.done + 14, "spring"))})` }}>
               <circle cx={12} cy={12} r={11} fill={p.success} />
               <path d="M7 12.4l3.2 3.2L17 8.8" fill="none" stroke={p.card} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={16} strokeDashoffset={16 * (1 - tick)} />
             </svg>

@@ -27,7 +27,7 @@ export default defineMotion<StrokeDrawMarkProps>({
     name: "Prism Labs",
     tagline: "Tools for teams that ship",
     stagger: 4,
-    ease: "smooth",
+    ease: "enter",
   } as StrokeDrawMarkProps,
   palettes,
   controls: [

@@ -58,9 +58,9 @@ export const StrokeDrawMark: React.FC<StrokeDrawMarkProps> = (p) => {
   const S = (isVertical ? 400 : 330) * u;
   const hex = progress(frame, tl.hex[0], tl.hex[1], p.ease);
   const flood = progress(frame, tl.flood[0], tl.flood[1], p.ease);
-  const lineColor = interpolateColors(progress(frame, tl.recolor[0], tl.recolor[1], "soft"), [0, 1], [p.stroke, p.background]);
+  const lineColor = interpolateColors(progress(frame, tl.recolor[0], tl.recolor[1], "travel"), [0, 1], [p.stroke, p.background]);
   const head = alongHex(hex * HEX_LEN);
-  const headO = progress(frame, tl.hex[0], tl.hex[0] + 4, "soft") * (1 - progress(frame, tl.hex[1] - 6, tl.hex[1], "soft"));
+  const headO = progress(frame, tl.hex[0], tl.hex[0] + 4, "travel") * (1 - progress(frame, tl.hex[1] - 6, tl.hex[1], "travel"));
   const name = progress(frame, tl.name[0], tl.name[1], p.ease);
   const tag = progress(frame, tl.tag[0], tl.tag[1], p.ease);
   const floodY = mix(184, 16, flood);

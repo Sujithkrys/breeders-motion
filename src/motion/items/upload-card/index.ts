@@ -25,7 +25,7 @@ export default defineMotion<UploadCardProps>({
     ...palettes[0].values,
     fileName: "Brand-guidelines.pdf",
     sizeMb: 24.6,
-    ease: "smooth",
+    ease: "enter",
   } as UploadCardProps,
   palettes,
   controls: [

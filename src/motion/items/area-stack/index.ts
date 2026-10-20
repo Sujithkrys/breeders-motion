@@ -51,7 +51,7 @@ export default defineMotion<AreaStackProps>({
     seriesB: "18,22,21,27,31,30,36,40,44,49",
     seriesC: "8,9,12,13,15,18,19,23,26,30",
     reveal: 50,
-    ease: "soft",
+    ease: "travel",
   } as AreaStackProps,
   palettes,
   controls: [

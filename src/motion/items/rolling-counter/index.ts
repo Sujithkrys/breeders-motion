@@ -28,7 +28,7 @@ export default defineMotion<RollingCounterProps>({
     badge: "38% year over year",
     stagger: 4,
     spins: 1,
-    ease: "smooth",
+    ease: "enter",
   } as RollingCounterProps,
   palettes,
   controls: [

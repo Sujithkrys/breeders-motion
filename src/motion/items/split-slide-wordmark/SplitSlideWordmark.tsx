@@ -35,9 +35,9 @@ export const SplitSlideWordmark: React.FC<SplitSlideWordmarkProps> = (p) => {
   const opened = progress(frame, tl.open[0], tl.open[1], p.ease);
   const closed = progress(frame, tl.close[0], tl.close[1], p.ease);
   const o = opened * (1 - closed);
-  const tag = progress(frame, tl.tag[0], tl.tag[1], "smooth");
+  const tag = progress(frame, tl.tag[0], tl.tag[1], "enter");
   const half = (p.spread * u * o) / 2;
-  const bump = Math.sin(Math.PI * progress(frame, tl.close[1] - 2, tl.close[1] + 8, "smooth"));
+  const bump = Math.sin(Math.PI * progress(frame, tl.close[1] - 2, tl.close[1] + 8, "enter"));
 
   const word: React.CSSProperties = {
     fontSize: fs,

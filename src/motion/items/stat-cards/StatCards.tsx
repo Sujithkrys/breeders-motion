@@ -85,7 +85,7 @@ export const StatCards: React.FC<StatCardsProps> = (p) => {
   const blockH = headerH + headerGap + (wide ? cardH : cardH * 3 + gap * 2);
   const top = (height - blockH) / 2;
   const cardTop = top + headerH + headerGap;
-  const head = progress(frame, 0, 22, "smooth");
+  const head = progress(frame, 0, 22, "enter");
   const st = p.stagger;
   const mono: React.CSSProperties = { fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums" };
 
@@ -104,9 +104,9 @@ export const StatCards: React.FC<StatCardsProps> = (p) => {
       {cards.map((c, i) => {
         const s0 = 12 + i * st;
         const rise = progress(frame, s0, s0 + 26, p.ease);
-        const count = progress(frame, s0 + 6, s0 + 50, "smooth");
-        const chip = progress(frame, s0 + 34, s0 + 48, "smooth");
-        const draw = progress(frame, s0 + 12, s0 + 58, "soft");
+        const count = progress(frame, s0 + 6, s0 + 50, "enter");
+        const chip = progress(frame, s0 + 34, s0 + 48, "enter");
+        const draw = progress(frame, s0 + 12, s0 + 58, "travel");
         const up = c.delta >= 0;
         const dc = up ? p.pos : p.neg;
         const x = wide ? pad + i * (cardW + gap) : pad;

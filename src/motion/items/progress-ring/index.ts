@@ -28,7 +28,7 @@ export default defineMotion<ProgressRingProps>({
     target: 78,
     thickness: 40,
     fillTime: 66,
-    ease: "smooth",
+    ease: "enter",
   } as ProgressRingProps,
   palettes,
   controls: [

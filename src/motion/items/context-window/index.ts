@@ -53,7 +53,7 @@ export default defineMotion<ContextWindowProps>({
     value4: 108.6,
     value5: 3.9,
     saved: 78.2,
-    ease: "smooth",
+    ease: "enter",
   } as ContextWindowProps,
   palettes,
   controls: [

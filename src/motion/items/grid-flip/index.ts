@@ -47,7 +47,7 @@ export default defineMotion<GridFlipProps>({
     titleB: "New way",
     tiles: 4,
     stagger: 2,
-    ease: "soft",
+    ease: "travel",
   } as GridFlipProps,
   palettes,
   controls: [

@@ -83,6 +83,45 @@ crisp type, one colour doing one job.
 Breeders accent; cream plus coral; a lavender block; a lime block; ink plus white. `values` sets **every** colour
 prop including `background`. `swatch` lists 2–4 representative colours.
 
+## Shape and motion (approved 2026-10-20)
+
+These keep 50+ components feeling like one product. The values live in `src/motion/kit.ts`; use the constants, never
+ad hoc numbers.
+
+**Shape** (`RADIUS`, `STROKE`, in px at 1080 on the short side, so multiply by `u`):
+
+| Token | Value | Use it for |
+|---|---|---|
+| `RADIUS.chip` | 8 | chips, tags, the leading end of chart bars |
+| `RADIUS.button` | 16 | buttons, inputs, small panels |
+| `RADIUS.card` | 32 | cards and tiles 100px and over |
+| `RADIUS.hero` | 48 | hero objects |
+| `STROKE.hair` | 1.5 | chart axes, gridlines, dividers, connector lines |
+| `STROKE.ring` | 2.5 | rings, borders, selection rings |
+| `STROKE.bar` | 6 | progress bars, thick bars |
+
+- No other radii or stroke widths.
+- Strokes sit at 18–30% opacity unless the stroke is the accent itself.
+
+**Motion** (`CURVES`, `SPRING_CONFIG`, `progress(frame, from, to, ease)`):
+
+| Name | Curve | Use it for |
+|---|---|---|
+| `enter` | cubic-bezier(0.22, 1, 0.36, 1) | anything arriving: titles rising, cards dropping in, rows appearing |
+| `exit` | cubic-bezier(0.64, 0, 0.78, 0) | anything leaving: fades out, scenes pushed away |
+| `travel` | cubic-bezier(0.65, 0, 0.35, 1) | moving between two on-screen states: a value flying into place, a ring sliding, a cursor gliding |
+| `linear` | linear | only continuous motion: marquees, orbits, sweeps, playheads |
+| `spring` | damping 200, mass 0.6, stiffness 120 | physical objects: cards, tiles, chips, cubes |
+
+- The `ease` select uses `EASE_OPTIONS`, which lists exactly these five. `envelope()` enters with the chosen ease
+  and leaves on `exit`.
+- Durations are 120, 150 or 180 frames (`DURATIONS`). Write timing in frames.
+- The last 12 frames (`FINAL_HOLD`) are a held, still final state. The loop restarts without a jolt, and that
+  region holds the poster frame. A continuous element may keep moving through the hold.
+- Entrances run 18–24 frames and exits 12–16 frames.
+- Siblings stagger by 3 frames (`STAGGER`), 8 at most; beyond 8, stagger in groups of 8.
+- An entrance uses at most two of these: fade from 0, scale from below 0.9, offset over 40px.
+
 ## Controls
 
 Give each component 4–8 controls:

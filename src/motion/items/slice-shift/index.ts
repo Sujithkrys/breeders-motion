@@ -47,7 +47,7 @@ export default defineMotion<SliceShiftProps>({
     titleB: "After",
     slices: 6,
     stagger: 1.5,
-    ease: "snappy",
+    ease: "travel",
   } as SliceShiftProps,
   palettes,
   controls: [

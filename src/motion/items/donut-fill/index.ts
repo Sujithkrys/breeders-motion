@@ -47,7 +47,7 @@ export default defineMotion<DonutFillProps>({
     labels: "Direct,Search,Social,Email,Referral",
     values: "38,24,18,12,8",
     sweep: 50,
-    ease: "soft",
+    ease: "travel",
   } as DonutFillProps,
   palettes,
   controls: [

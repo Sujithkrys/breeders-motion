@@ -28,7 +28,7 @@ export default defineMotion<MaskedWordRiseProps>({
     line1: "Motion that ships.",
     line2: "Built for launch day.",
     stagger: 7,
-    ease: "smooth",
+    ease: "enter",
   } as MaskedWordRiseProps,
   palettes,
   controls: [

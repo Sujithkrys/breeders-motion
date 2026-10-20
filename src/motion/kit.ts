@@ -1,5 +1,5 @@
 // Shared helpers for motion components. Components import from here instead of re-deriving timing and layout math.
-import { Easing, interpolate, useVideoConfig } from "remotion";
+import { Easing, interpolate, spring, useVideoConfig } from "remotion";
 import type { Ratio } from "./types";
 
 // Families by name, never via var(): the exporter rasterises inline SVG outside the page, where an undefined CSS
@@ -8,28 +8,67 @@ import type { Ratio } from "./types";
 export const FONT_SANS = "'Geist', ui-sans-serif, system-ui, sans-serif";
 export const FONT_MONO = "'Geist Mono', ui-monospace, monospace";
 
-// Easing presets, named the way the Edit tab and prompts name them.
-export const EASES = {
-  smooth: [0.2, 0.8, 0.2, 1],
-  snappy: [0.7, 0, 0.2, 1],
-  soft: [0.4, 0, 0.2, 1],
-  bouncy: [0.3, 1.5, 0.4, 1],
+// ---- Shape (spec §4). Use these instead of ad hoc numbers; multiply by `u`.
+// Radius: chip/bar ends 8, buttons and inputs 16, cards and tiles of 100px+ 32, hero objects 48.
+export const RADIUS = { chip: 8, button: 16, card: 32, hero: 48 } as const;
+// Stroke: hairlines (charts, grids, dividers) 1.5, rings and borders 2.5, bars and progress 6.
+// Strokes sit at 18–30% opacity unless the stroke is the accent itself.
+export const STROKE = { hair: 1.5, ring: 2.5, bar: 6 } as const;
+
+// ---- Motion (spec §5). Four curves plus a spring for physical objects (cards, tiles, chips, cubes).
+// enter: things arriving · exit: things leaving · travel: between two on-screen states ·
+// linear: only for continuous motion (marquees, orbits, sweeps) · spring: physical objects.
+export const CURVES = {
+  enter: [0.22, 1, 0.36, 1],
+  exit: [0.64, 0, 0.78, 0],
+  travel: [0.65, 0, 0.35, 1],
+  linear: [0, 0, 1, 1],
 } as const;
-export type EaseName = keyof typeof EASES;
-export const EASE_OPTIONS = (Object.keys(EASES) as EaseName[]).map((k) => ({ label: k[0].toUpperCase() + k.slice(1), value: k }));
+export const SPRING_CONFIG = { damping: 200, mass: 0.6, stiffness: 120 } as const;
+// Timing: clips are 120, 150 or 180 frames and end on FINAL_HOLD still frames; entrances 18–24f, exits 12–16f,
+// siblings stagger 3f (8 at most, then in groups of 8).
+export const DURATIONS = [120, 150, 180] as const;
+export const FINAL_HOLD = 12;
+export const STAGGER = 3;
+export const ENTER_FRAMES = { min: 18, max: 24 } as const;
+export const EXIT_FRAMES = { min: 12, max: 16 } as const;
+
+export type EaseName = keyof typeof CURVES | "spring";
+// Names used before the motion spec, kept so saved links and older components resolve to the nearest curve.
+const LEGACY: Record<string, EaseName> = { smooth: "enter", soft: "travel", snappy: "travel", bouncy: "spring" };
+const resolveEase = (name: string): EaseName => {
+  if (name === "spring" || name in CURVES) return name as EaseName;
+  return LEGACY[name] ?? "enter";
+};
+export const EASE_OPTIONS = [
+  { label: "Enter", value: "enter" },
+  { label: "Travel", value: "travel" },
+  { label: "Exit", value: "exit" },
+  { label: "Spring", value: "spring" },
+  { label: "Linear", value: "linear" },
+];
+// The spring stretched over the eased window, so it can stand in wherever a curve is accepted.
+const springEase = (t: number) => spring({ frame: Math.min(1, Math.max(0, t)) * 100, fps: 30, config: SPRING_CONFIG, durationInFrames: 100 });
 export const easing = (name: EaseName | string) => {
-  const b = EASES[(name as EaseName) in EASES ? (name as EaseName) : "smooth"];
+  const e = resolveEase(name);
+  if (e === "spring") return springEase;
+  const b = CURVES[e];
   return Easing.bezier(b[0], b[1], b[2], b[3]);
 };
-export const bezierText = (name: EaseName | string) => `cubic-bezier(${EASES[(name as EaseName) in EASES ? (name as EaseName) : "smooth"].join(", ")})`;
+export const bezierText = (name: EaseName | string) => {
+  const e = resolveEase(name);
+  if (e === "spring") return `spring (damping ${SPRING_CONFIG.damping}, mass ${SPRING_CONFIG.mass}, stiffness ${SPRING_CONFIG.stiffness})`;
+  return e === "linear" ? "linear" : `cubic-bezier(${CURVES[e].join(", ")})`;
+};
 
 // 0 → 1 between two frames, clamped, eased.
-export const progress = (frame: number, from: number, to: number, ease: EaseName | string = "smooth") =>
+export const progress = (frame: number, from: number, to: number, ease: EaseName | string = "enter") =>
   interpolate(frame, [from, to], [0, 1], { easing: easing(ease), extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-// In/hold/out envelope for looping components: rises over [0, inEnd], holds, falls over [outStart, total].
-export const envelope = (frame: number, total: number, inEnd: number, outStart: number, ease: EaseName | string = "smooth") =>
-  frame < outStart ? progress(frame, 0, inEnd, ease) : 1 - progress(frame, outStart, total, ease);
+// In/hold/out envelope for looping components: rises over [0, inEnd] with `ease`, holds, then falls over
+// [outStart, total] on the exit curve, as the motion spec asks of anything leaving.
+export const envelope = (frame: number, total: number, inEnd: number, outStart: number, ease: EaseName | string = "enter") =>
+  frame < outStart ? progress(frame, 0, inEnd, ease) : 1 - progress(frame, outStart, total, "exit");
 
 export const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 

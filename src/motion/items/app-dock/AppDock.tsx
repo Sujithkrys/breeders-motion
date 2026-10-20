@@ -88,10 +88,10 @@ export const AppDock: React.FC<AppDockProps> = (p) => {
   const step = s + gap;
 
   // Cursor path in icon-index units: sweep left → right, then come back and rest on the active icon.
-  const sweep = progress(f, 22, 70, "soft");
+  const sweep = progress(f, 22, 70, "travel");
   const back = progress(f, 70, 90, p.ease);
   const c = f < 70 ? -1.2 + sweep * 7.8 : 6.6 + (a - 6.6) * back;
-  const amp = progress(f, 20, 34, "smooth");
+  const amp = progress(f, 20, 34, "enter");
   const sigma = 1.1;
   const scales = Array.from({ length: COUNT }, (_, i) => 1 + (p.magnify - 1) * amp * Math.exp(-((i - c) ** 2) / (2 * sigma * sigma)));
   const widths = scales.map((k) => s * k);
@@ -112,10 +112,10 @@ export const AppDock: React.FC<AppDockProps> = (p) => {
   const iconBase = bottom - pad;
 
   const bounce = hop(f, 96, 22, s * 0.5) + hop(f, 118, 16, s * 0.22);
-  const press = 1 - 0.12 * (progress(f, 90, 94, "soft") - progress(f, 94, 100, "soft"));
+  const press = 1 - 0.12 * (progress(f, 90, 94, "travel") - progress(f, 94, 100, "travel"));
   const tip = progress(f, 86, 100, p.ease);
-  const newDot = progress(f, 110, 124, "bouncy");
-  const cursorIn = progress(f, 18, 28, "smooth");
+  const newDot = progress(f, 110, 124, "spring");
+  const cursorIn = progress(f, 18, 28, "enter");
 
   return (
     <AbsoluteFill style={{ background: p.background, fontFamily: FONT_SANS, overflow: "hidden" }}>

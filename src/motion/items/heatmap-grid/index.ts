@@ -28,7 +28,7 @@ export default defineMotion<HeatmapGridProps>({
     values: "4,6,5,8,7,9,12,10,14,13,16,15,18,17,21,19,24,22,26,28",
     months: "Jun,Jul,Aug,Sep,Oct",
     wave: 2,
-    ease: "bouncy",
+    ease: "spring",
   } as HeatmapGridProps,
   palettes,
   controls: [

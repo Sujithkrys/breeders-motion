@@ -48,7 +48,7 @@ export default defineMotion<StatCardsProps>({
     values: "$128.4k,48210,92.4%",
     deltas: "12,8.5,-2.1",
     stagger: 8,
-    ease: "smooth",
+    ease: "enter",
   } as StatCardsProps,
   palettes,
   controls: [

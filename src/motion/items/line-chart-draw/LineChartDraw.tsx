@@ -145,9 +145,9 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
   const tip = pointAt(L * t);
   const tipValue = lo + ((bottom - tip.y) / ch) * (hi - lo);
   const tipIdx = Math.min(n - 1, Math.max(0, Math.round(((tip.x - left) / cw) * (n - 1))));
-  const head = progress(frame, 0, 22, "smooth");
-  const area = progress(frame, drawStart + 8, drawEnd + 12, "smooth");
-  const tipIn = progress(frame, drawStart, drawStart + 10, "smooth");
+  const head = progress(frame, 0, 22, "enter");
+  const area = progress(frame, drawStart + 8, drawEnd + 12, "enter");
+  const tipIn = progress(frame, drawStart, drawStart + 10, "enter");
   const pulse = frame > drawEnd ? ((frame - drawEnd) % 45) / 45 : 0;
 
   const last = values[n - 1];
@@ -192,7 +192,7 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
                 background: alpha(p.line, 0.14),
                 padding: `${8 * u}px ${14 * u}px`,
                 borderRadius: 999,
-                opacity: progress(frame, drawEnd - 6, drawEnd + 10, "smooth"),
+                opacity: progress(frame, drawEnd - 6, drawEnd + 10, "enter"),
               }}
             >
               {deltaPct >= 0 ? "+" : "−"}
@@ -200,7 +200,7 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
             </span>
           )}
           <span style={{ fontSize: 84 * u, fontWeight: 650, letterSpacing: "-0.045em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-            {fmt(last * progress(frame, drawStart, drawEnd, "smooth"), decimals)}
+            {fmt(last * progress(frame, drawStart, drawEnd, "enter"), decimals)}
           </span>
         </div>
       </div>
@@ -225,7 +225,7 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
 
         {Array.from({ length: ticks + 1 }, (_, k) => {
           const y = bottom - (k / ticks) * ch;
-          const g = progress(frame, 4 + k * 3, 30 + k * 3, "smooth");
+          const g = progress(frame, 4 + k * 3, 30 + k * 3, "enter");
           return (
             <line
               key={k}
@@ -276,7 +276,7 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
         return (
           <span
             key={k}
-            style={{ ...mono, position: "absolute", right: width - left + 22 * u, top: y - 13 * u, fontSize: 20 * u, lineHeight: `${26 * u}px`, color: p.muted, opacity: progress(frame, 8 + k * 3, 30 + k * 3, "smooth") }}
+            style={{ ...mono, position: "absolute", right: width - left + 22 * u, top: y - 13 * u, fontSize: 20 * u, lineHeight: `${26 * u}px`, color: p.muted, opacity: progress(frame, 8 + k * 3, 30 + k * 3, "enter") }}
           >
             {fmt(lo + k * step, step % 1 === 0 ? 0 : 1)}
           </span>
@@ -295,7 +295,7 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
               color: i === tipIdx && tipIn > 0 ? p.ink : p.muted,
               fontWeight: i === tipIdx && tipIn > 0 ? 600 : 400,
               whiteSpace: "nowrap",
-              opacity: progress(frame, 10, 30, "smooth"),
+              opacity: progress(frame, 10, 30, "enter"),
             }}
           >
             {l}

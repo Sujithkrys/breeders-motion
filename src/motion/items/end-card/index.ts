@@ -28,7 +28,7 @@ export default defineMotion<EndCardProps>({
     url: "lumen.app",
     cta: "Get early access",
     stagger: 7,
-    ease: "smooth",
+    ease: "enter",
   } as EndCardProps,
   palettes,
   controls: [

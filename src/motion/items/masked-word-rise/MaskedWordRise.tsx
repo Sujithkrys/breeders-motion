@@ -61,7 +61,7 @@ export const MaskedWordRise: React.FC<MaskedWordRiseProps> = (p) => {
   const fs = fitSize(longest, width * (isVertical ? 0.86 : 0.8), (isVertical ? RISE.baseVertical : RISE.base) * u);
   const l2Start = RISE.start + p.stagger;
   const eyebrowIn = progress(frame, 0, 20, p.ease);
-  const settle = progress(frame, 0, 96, "soft");
+  const settle = progress(frame, 0, 96, "travel");
   // Unique per instance: the grid shows many of these at once with different palettes.
   const glowId = `mwr${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 

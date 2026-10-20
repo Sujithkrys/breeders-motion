@@ -22,7 +22,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = (p) => {
   const frame = useCurrentFrame();
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const { u } = useLayout();
-  const enter = progress(frame, 0, 12, "smooth");
+  const enter = progress(frame, 0, 12, "enter");
   const t = progress(frame, FILL_AT, FILL_AT + p.fillTime, p.ease);
   const v = Math.min(Math.max(p.target * t, 0), 100);
   const cap = progress(frame, FILL_AT + p.fillTime - 6, FILL_AT + p.fillTime + 10, p.ease);

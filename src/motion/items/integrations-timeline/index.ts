@@ -49,7 +49,7 @@ export default defineMotion<IntegrationsTimelineProps>({
     label4: "Focus · launch",
     ...palettes[0].values,
     stagger: 8,
-    ease: "smooth",
+    ease: "enter",
   } as IntegrationsTimelineProps,
   palettes,
   controls: [
@@ -98,7 +98,7 @@ export default defineMotion<IntegrationsTimelineProps>({
       `Connectors: 1.5px ${darkCanvas ? "white at 30%" : alpha("#0E0F12", 0.22)} lines from each tile's inner edge to a spine ${px(L.spineGap)} off the card, ${px(L.corner)} rounded corners, merging into one 6.5px port dot on the card's ${sides[0]} and ${sides[1]} edges (the port fills ${p.accent} on first arrival).`,
       "",
       `Tiles drop in alternating sides (${sides[0]} 1, ${sides[1]} 1, ${sides[0]} 2, …) every ${p.stagger} frames from frame ${TIMING.first}: 28px drop, scale 0.94 → 1 and fade over ${TIMING.drop} frames, ease ${p.ease} ${bezierText(p.ease)}.`,
-      `Each line starts ${TIMING.lineDelay} frames after its tile and draws in ${TIMING.draw} frames (ease soft ${bezierText("soft")}) with a 5px ${p.accent} dot at its tip; on arrival a ${p.accent} ring grows from 7 to 26px and fades out of the port, and the counter ticks.`,
+      `Each line starts ${TIMING.lineDelay} frames after its tile and draws in ${TIMING.draw} frames (ease soft ${bezierText("travel")}) with a 5px ${p.accent} dot at its tip; on arrival a ${p.accent} ring grows from 7 to 26px and fades out of the port, and the counter ticks.`,
       `Rows fill on the 1st, 3rd, 4th and 6th arrivals (${rowFrames.map(f).join(", ")}): the tint wipes in left to right over ${TIMING.fill} frames, the label slides in 10px and fades up, the time brightens.`,
       `Hold until ${r0(exitAt * 100)}% of the loop, then everything fades out (soft) back to the title and the empty card, so the ${c.seconds}s loop is seamless.`,
     ].join("\n");

@@ -27,7 +27,7 @@ export default defineMotion<OrbitIconsProps>({
     caption: "Works with your whole stack",
     tilt: 66,
     radius: 400,
-    ease: "soft",
+    ease: "travel",
   } as OrbitIconsProps,
   palettes,
   controls: [

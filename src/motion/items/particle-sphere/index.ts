@@ -27,7 +27,7 @@ export default defineMotion<ParticleSphereProps>({
     count: 4000,
     twist: 1.6,
     breathe: 0.14,
-    ease: "smooth",
+    ease: "enter",
   } as ParticleSphereProps,
   palettes,
   controls: [

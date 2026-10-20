@@ -28,7 +28,7 @@ export default defineMotion<GradientShineProps>({
     subline: "The new standard for launch day",
     bandWidth: 24,
     angle: 18,
-    ease: "smooth",
+    ease: "enter",
   } as GradientShineProps,
   palettes,
   controls: [

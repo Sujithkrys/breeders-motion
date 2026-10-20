@@ -96,9 +96,9 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = (p) => {
   const k = wide ? u : ratio === "9:16" ? u : 0.72 * u;
   const enter = progress(f, 0, 24, p.ease);
   const artIn = progress(f, 4, 30, p.ease);
-  const playing = progress(f, PLAY_FRAME - 2, PLAY_FRAME + 4, "snappy");
-  const gain = progress(f, PLAY_FRAME, PLAY_FRAME + 18, "smooth");
-  const press = 1 - 0.1 * (progress(f, PLAY_FRAME - 6, PLAY_FRAME - 2, "soft") - progress(f, PLAY_FRAME - 2, PLAY_FRAME + 6, "soft"));
+  const playing = progress(f, PLAY_FRAME - 2, PLAY_FRAME + 4, "travel");
+  const gain = progress(f, PLAY_FRAME, PLAY_FRAME + 18, "enter");
+  const press = 1 - 0.1 * (progress(f, PLAY_FRAME - 6, PLAY_FRAME - 2, "travel") - progress(f, PLAY_FRAME - 2, PLAY_FRAME + 6, "travel"));
   const elapsed = START_SECONDS + Math.max(0, f - PLAY_FRAME) / fps;
   const frac = elapsed / TRACK_SECONDS;
   const muted = alpha(p.ink, 0.55);

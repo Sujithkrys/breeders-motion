@@ -26,7 +26,7 @@ export default defineMotion<GlassTorusProps>({
     ...palettes[0].values,
     turns: 1,
     roughness: 0.14,
-    ease: "smooth",
+    ease: "enter",
   } as GlassTorusProps,
   palettes,
   controls: [

@@ -48,12 +48,12 @@ export const OrbitLockup: React.FC<OrbitLockupProps> = (p) => {
   const spin = p.turns * Math.PI * 2;
   const angVel = (2 * spin * q) / (tl.orbit[1] - tl.orbit[0]); // radians per frame
   const r = R0 * (1 - Math.pow(q, 3));
-  const dotsIn = progress(frame, tl.orbit[0], tl.orbit[0] + D * 0.08, "soft");
-  const dotsOut = 1 - progress(frame, tl.collapse - D * 0.05, tl.collapse, "soft");
+  const dotsIn = progress(frame, tl.orbit[0], tl.orbit[0] + D * 0.08, "travel");
+  const dotsOut = 1 - progress(frame, tl.collapse - D * 0.05, tl.collapse, "travel");
   const trail = Math.min(1.7, angVel * 2.4);
 
   const pop = spring({ frame: frame - tl.collapse + 1, fps, config: { damping: 11, stiffness: 150, mass: 0.8 } });
-  const shock = progress(frame, tl.shock[0], tl.shock[1], "smooth");
+  const shock = progress(frame, tl.shock[0], tl.shock[1], "enter");
   const mono = progress(frame, tl.mono[0], tl.mono[1], p.ease);
   const ring = progress(frame, tl.ring[0], tl.ring[1], p.ease);
   const w = progress(frame, tl.name[0], tl.name[1], p.ease);

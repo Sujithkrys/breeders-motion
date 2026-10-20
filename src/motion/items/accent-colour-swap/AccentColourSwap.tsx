@@ -510,7 +510,7 @@ export const AccentColourSwap: React.FC<AccentColourSwapProps> = (p) => {
   const swPress: [number, number] = f < (T.click1 + T.click2) / 2 ? [ib, press(f, T.click1)] : [ia, press(f, T.click2)];
 
   // selection box on the hero
-  const sel = clamp01(progress(f, T.selIn[0], T.selIn[1], "smooth") - progress(f, T.selOut[0], T.selOut[1], "smooth"));
+  const sel = clamp01(progress(f, T.selIn[0], T.selIn[1], "enter") - progress(f, T.selOut[0], T.selOut[1], "enter"));
   const handle = 10 * u;
 
   return (

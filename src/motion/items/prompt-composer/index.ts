@@ -27,7 +27,7 @@ export default defineMotion<PromptComposerProps>({
     placeholder: "Ask anything",
     mode: "Write",
     speed: 40,
-    ease: "smooth",
+    ease: "enter",
   } as PromptComposerProps,
   palettes,
   controls: [

@@ -50,7 +50,7 @@ export default defineMotion<BlockTypeProps>({
     final: "JUST ONE PROMPT.",
     accent: "PROMPT.",
     beat: 24,
-    ease: "smooth",
+    ease: "enter",
   } as BlockTypeProps,
   palettes,
   controls: [

@@ -102,9 +102,9 @@ export const LeaderboardReorder: React.FC<LeaderboardReorderProps> = (p) => {
   const T0 = 72;
   const T1 = 120;
   const t = progress(frame, T0, T1, p.ease);
-  const lift = Math.sin(Math.PI * Math.min(1, progress(frame, T0, T1, "smooth")));
-  const chipOn = progress(frame, T1 - 4, T1 + 12, "smooth");
-  const head = progress(frame, 0, 22, "smooth");
+  const lift = Math.sin(Math.PI * Math.min(1, progress(frame, T0, T1, "enter")));
+  const chipOn = progress(frame, T1 - 4, T1 + 12, "enter");
+  const head = progress(frame, 0, 22, "enter");
   const mono: React.CSSProperties = { fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums" };
 
   return (
@@ -116,7 +116,7 @@ export const LeaderboardReorder: React.FC<LeaderboardReorderProps> = (p) => {
 
       {/* static rank slots */}
       {rows.map((_, slot) => {
-        const on = progress(frame, 8 + slot * st, 26 + slot * st, "smooth");
+        const on = progress(frame, 8 + slot * st, 26 + slot * st, "enter");
         const lead = slot === 0;
         return (
           <div
@@ -146,7 +146,7 @@ export const LeaderboardReorder: React.FC<LeaderboardReorderProps> = (p) => {
       })}
 
       {rows.map((r, i) => {
-        const intro = progress(frame, 8 + rankFrom[i] * st, 32 + rankFrom[i] * st, "smooth");
+        const intro = progress(frame, 8 + rankFrom[i] * st, 32 + rankFrom[i] * st, "enter");
         const pos = mix(rankFrom[i], rankTo[i], t);
         const v = mix(r.from, r.to, t) * intro;
         const len = Math.max(0, (v / scaleMax) * trackW);
