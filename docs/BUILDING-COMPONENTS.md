@@ -35,7 +35,10 @@ Then add one import to your batch file, `src/motion/batches/<batch>.ts`, and app
      (including SVG `<radialGradient>`, `<linearGradient>`, `<filter>`, paths, strokes, `strokeDasharray`).
    - Not allowed: CSS `radial-gradient` / `conic-gradient`, `backdrop-filter`, `mix-blend-mode`,
      `text-shadow`, `background-clip: text`, CSS `mask-image` (it exports as a ghost duplicate; use an SVG mask or
-     gradient stroke), `object-position`, external images and fonts.
+     gradient stroke), `object-position`, `font-variant-numeric` (tabular figures), external images and fonts.
+   - Keep a word or number in **one text node**: the exporter draws each text node separately, so `{n}{suffix}`
+     or invisible padding spans drift apart in the video. Write `{`${n}${suffix}`}`.
+   - Hundreds of text nodes make exports slow; draw repeated text (code textures, tick labels) in one inline SVG.
 5. **Fonts:** only `FONT_SANS` (Inter) and `FONT_MONO` (Geist Mono) from the kit; see the colour and type system below.
    Never write `var(--font-…)` in a component: exported SVG text can't resolve CSS variables and falls back to serif.
 6. **Loop or hold.** Loops must end exactly where they start; `envelope()` helps. One-shot reveals ease in and

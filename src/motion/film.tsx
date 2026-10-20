@@ -31,6 +31,8 @@ export const SAMPLE = {
   logo: "/templates/lumen-logo.svg",
   site: "/templates/lumen-site.png", // 1440 × 900 landing page at 2x
   phone: "/templates/lumen-phone.png", // 390 × 844 phone screen at 3x
+  appDark: "/templates/lumen-app-dark.png", // 1440 × 900 dark-mode app at 2x
+  phoneDark: "/templates/lumen-phone-dark.png", // 390 × 844 dark-mode phone screen at 3x
 } as const;
 
 // Templates run 6–10s at 30fps.
