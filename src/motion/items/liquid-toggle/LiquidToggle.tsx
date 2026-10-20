@@ -1,13 +1,17 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { FONT_SANS, alpha, progress, useLayout } from "../../kit";
+import { FONT_SANS, RADIUS, progress, useLayout } from "../../kit";
 
 export type LiquidToggleProps = {
   background: string;
-  trackOff: string;
-  accent: string;
+  card: string;
+  line: string;
+  track: string;
   knob: string;
-  text: string;
+  ink: string;
+  ink2: string;
+  ink3: string;
+  accent: string;
   title: string;
   offText: string;
   onText: string;
@@ -18,17 +22,18 @@ export type LiquidToggleProps = {
 
 export const ON_AT = 18;
 export const OFF_AT = 78;
-export const TRACK = { w: 560, h: 260, pad: 24 };
+export const TRACK = { w: 480, h: 224, pad: 20 };
+export const CARD = { wide: 1240, narrow: 880, pad: 72 };
 
-const isLight = (hex: string) => {
+const isDark = (hex: string) => {
   const h = hex.replace("#", "");
   const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h.slice(0, 6), 16);
-  return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 150;
+  return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) < 128;
 };
 
 export const LiquidToggle: React.FC<LiquidToggleProps> = (p) => {
   const frame = useCurrentFrame();
-  const { u } = useLayout();
+  const { u, ratio } = useLayout();
   const { w: W, h: H, pad } = TRACK;
   const d = H - pad * 2;
   const travel = W - pad * 2 - d;
@@ -51,23 +56,31 @@ export const LiquidToggle: React.FC<LiquidToggleProps> = (p) => {
   const kh = d * (1 - 0.2 * stretchAmt + 0.5 * squash);
 
   const on = Math.min(Math.max((leftPos + rightPos) / 2, 0), 1);
-  const swap = on;
-  const light = isLight(p.background);
+  const dark = isDark(p.background);
+  const wide = ratio === "16:9";
+  const shadow = dark ? "none" : `0 ${u}px ${2 * u}px rgba(0,0,0,0.04), 0 ${8 * u}px ${24 * u}px rgba(0,0,0,0.06)`;
+  const knobShadow = dark ? "none" : `0 ${u}px ${2 * u}px rgba(0,0,0,0.08), 0 ${6 * u}px ${16 * u}px rgba(0,0,0,0.12)`;
+  const stateLine: React.CSSProperties = { position: "absolute", inset: 0, lineHeight: `${44 * u}px`, textAlign: wide ? "left" : "center", whiteSpace: "nowrap" };
 
   return (
-    <AbsoluteFill style={{ background: p.background, alignItems: "center", justifyContent: "center", fontFamily: FONT_SANS, color: p.text }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 76 * u }}>
-        <div
-          style={{
-            position: "relative",
-            width: W * u,
-            height: H * u,
-            borderRadius: (H / 2) * u,
-            background: p.trackOff,
-            overflow: "hidden",
-            boxShadow: `inset 0 ${5 * u}px ${16 * u}px rgba(0,0,0,${light ? 0.12 : 0.35}), 0 ${30 * u}px ${90 * u}px ${alpha(p.accent, 0.38 * on)}`,
-          }}
-        >
+    <AbsoluteFill style={{ background: p.background, alignItems: "center", justifyContent: "center", fontFamily: FONT_SANS, color: p.ink }}>
+      <div
+        style={{
+          width: (wide ? CARD.wide : CARD.narrow) * u,
+          padding: CARD.pad * u,
+          boxSizing: "border-box",
+          borderRadius: RADIUS.card * u,
+          background: p.card,
+          border: `${u}px solid ${p.line}`,
+          boxShadow: shadow,
+          display: "flex",
+          flexDirection: wide ? "row-reverse" : "column",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 56 * u,
+        }}
+      >
+        <div style={{ position: "relative", width: W * u, height: H * u, flexShrink: 0, borderRadius: 999, background: p.track, overflow: "hidden" }}>
           <div
             style={{
               position: "absolute",
@@ -75,8 +88,8 @@ export const LiquidToggle: React.FC<LiquidToggleProps> = (p) => {
               top: 0,
               bottom: 0,
               width: (left + width + pad) * u,
-              borderRadius: (H / 2) * u,
-              background: `linear-gradient(180deg, ${alpha(p.accent, 0.92)}, ${p.accent})`,
+              borderRadius: 999,
+              background: p.accent,
               opacity: interpolate(on, [0, 0.6], [0, 1], { extrapolateRight: "clamp" }),
             }}
           />
@@ -87,21 +100,18 @@ export const LiquidToggle: React.FC<LiquidToggleProps> = (p) => {
               top: ((H - kh) / 2) * u,
               width: width * u,
               height: kh * u,
-              borderRadius: (Math.min(kh, width) / 2) * u,
-              background: `linear-gradient(180deg, ${p.knob}, ${alpha(p.knob, 0.9)})`,
-              boxShadow: `0 ${12 * u}px ${28 * u}px rgba(0,0,0,${light ? 0.18 : 0.32}), inset 0 ${-6 * u}px ${14 * u}px rgba(0,0,0,0.07)`,
-              overflow: "hidden",
+              borderRadius: 999,
+              background: p.knob,
+              boxShadow: knobShadow,
             }}
-          >
-            <div style={{ position: "absolute", left: "14%", right: "14%", top: "7%", height: "38%", borderRadius: (kh / 2) * u, background: "linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0))", opacity: 0.6 }} />
-          </div>
+          />
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 * u }}>
-          <div style={{ fontSize: 60 * u, fontWeight: 650, letterSpacing: "-0.04em", lineHeight: 1.1 }}>{p.title}</div>
-          <div style={{ position: "relative", height: 56 * u, minWidth: 300 * u, overflow: "hidden", fontSize: 40 * u, fontWeight: 500, letterSpacing: "-0.02em" }}>
-            <div style={{ position: "absolute", inset: 0, textAlign: "center", lineHeight: `${56 * u}px`, color: alpha(p.text, 0.45), opacity: 1 - swap, transform: `translateY(${-swap * 40 * u}px)` }}>{p.offText}</div>
-            <div style={{ position: "absolute", inset: 0, textAlign: "center", lineHeight: `${56 * u}px`, color: p.accent, opacity: swap, transform: `translateY(${(1 - swap) * 40 * u}px)` }}>{p.onText}</div>
+        <div style={{ flex: wide ? 1 : undefined, minWidth: 0, width: wide ? undefined : "100%", display: "flex", flexDirection: "column", alignItems: wide ? "flex-start" : "center", gap: 14 * u }}>
+          <div style={{ fontSize: 56 * u, fontWeight: 400, letterSpacing: "-0.04em", lineHeight: 1.1, textAlign: wide ? "left" : "center" }}>{p.title}</div>
+          <div style={{ position: "relative", alignSelf: "stretch", height: 44 * u, overflow: "hidden", fontSize: 30 * u, fontWeight: 400, letterSpacing: "-0.015em" }}>
+            <div style={{ ...stateLine, color: p.ink3, opacity: 1 - on, transform: `translateY(${-on * 28 * u}px)` }}>{p.offText}</div>
+            <div style={{ ...stateLine, color: p.ink2, opacity: on, transform: `translateY(${(1 - on) * 28 * u}px)` }}>{p.onText}</div>
           </div>
         </div>
       </div>

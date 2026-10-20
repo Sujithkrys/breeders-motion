@@ -1,15 +1,25 @@
-import { EASE_OPTIONS, bezierText, targetLine } from "../../kit";
+import { ACCENT, EASE_OPTIONS, RADIUS, STROKE, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion, type Ratio } from "../../types";
-import { AccentColourSwap, TIMING, geometry, isDarkPage, splitAccentWord, swatchIndices, type AccentColourSwapProps } from "./AccentColourSwap";
+import { AccentColourSwap, DELAY, TIMING, geometry, isDark, splitAccentWord, swatchIndices, type AccentColourSwapProps } from "./AccentColourSwap";
 
-const CORAL = "#FF5A1F", BLUE = "#2443FF", GREEN = "#14A34A", VIOLET = "#A23CFF", INK = "#111111";
-
-const palettes = [
-  { name: "Paper", swatch: ["#FAFAF8", CORAL, BLUE], values: { background: "#FAFAF8", page: "#FFFFFF", swatch1: CORAL, swatch2: BLUE, swatch3: GREEN, swatch4: VIOLET, swatch5: INK } },
-  { name: "White", swatch: ["#FFFFFF", BLUE, CORAL], values: { background: "#FFFFFF", page: "#FAFAF8", swatch1: BLUE, swatch2: CORAL, swatch3: GREEN, swatch4: VIOLET, swatch5: INK } },
-  { name: "Soft", swatch: ["#F2F2EF", INK, CORAL], values: { background: "#F2F2EF", page: "#FFFFFF", swatch1: INK, swatch2: CORAL, swatch3: BLUE, swatch4: GREEN, swatch5: VIOLET } },
-  { name: "Ink", swatch: ["#0E0F12", CORAL, GREEN], values: { background: "#0E0F12", page: "#15161A", swatch1: CORAL, swatch2: GREEN, swatch3: BLUE, swatch4: VIOLET, swatch5: "#FFFFFF" } },
-];
+// Swatch row: the look's accent, the other system accent, ink, the mid grey and the system green.
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  fill: t.fill,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  button: t.button,
+  onButton: t.onButton,
+  onAccent: t.onAccent,
+  accent: t.accent,
+  swatch2: t.accent === ACCENT.orange ? ACCENT.blue : ACCENT.orange,
+  swatch3: t.ink,
+  swatch4: t.ink2,
+  swatch5: t.success,
+}));
 
 export default defineMotion<AccentColourSwapProps>({
   slug: "accent-colour-swap",
@@ -40,14 +50,10 @@ export default defineMotion<AccentColourSwapProps>({
     { type: "text", key: "subline", label: "Subline", maxLength: 110 },
     { type: "text", key: "buttonLabel", label: "Button", maxLength: 20 },
     { type: "text", key: "cursorName", label: "Cursor name", maxLength: 14 },
-    { type: "color", key: "swatch1", label: "Swatch 1" },
-    { type: "color", key: "swatch2", label: "Swatch 2" },
-    { type: "color", key: "swatch3", label: "Swatch 3" },
-    { type: "color", key: "swatch4", label: "Swatch 4" },
-    { type: "color", key: "swatch5", label: "Swatch 5" },
+    { type: "color", key: "accent", label: "Accent" },
+    { type: "color", key: "background", label: "Background" },
     { type: "number", key: "startSwatch", label: "Start swatch", min: 1, max: 5, step: 1 },
     { type: "number", key: "secondSwatch", label: "Clicked swatch", min: 1, max: 5, step: 1 },
-    { type: "color", key: "background", label: "Canvas" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
   prompt: (p, c) => {
@@ -56,28 +62,28 @@ export default defineMotion<AccentColourSwapProps>({
     const u = Math.min(c.width, c.height) / 1080;
     const g = geometry(ratio, c.width / u, c.height / u);
     const px = (n: number) => Math.round(n * u);
-    const at = (fr: number) => `${((fr / T.base) * c.seconds).toFixed(1)}s`;
-    const pct = (fr: number) => `${Math.round((fr / T.base) * 100)}%`;
-    const sw = [p.swatch1, p.swatch2, p.swatch3, p.swatch4, p.swatch5].map((s) => s.toUpperCase());
+    const fr = (n: number) => Math.round((n / T.base) * c.seconds * c.fps);
+    const sw = [p.accent, p.swatch2, p.swatch3, p.swatch4, p.swatch5].map((s) => s.toUpperCase());
     const [ia, ib] = swatchIndices(p.startSwatch, p.secondSwatch);
     const [, word] = splitAccentWord(p.headline2);
-    const dark = isDarkPage(p.page);
+    const dark = isDark(p.background);
     const scale = (g.AW * u) / g.DW;
     const layout = g.wide
-      ? `the hero artboard is ${px(g.AW)}×${px(g.AH)} centred at the top; the panel is a ${px(g.PW)}×${px(g.PH)} bar ${px(56)}px below it (swatches left, Hex and Used-in fields right)`
-      : `the hero artboard is ${px(g.AW)}×${px(g.AH)} on the left; the ${px(g.PW)}×${px(g.PH)} panel sits ${px(48)}px to its right, vertically centred`;
+      ? `the hero artboard is ${px(g.AW)}×${px(g.AH)}px centred at the top; the panel is a ${px(g.PW)}×${px(g.PH)}px bar ${px(56)}px below it (swatches left, Hex and Used-in fields right)`
+      : `the hero artboard is ${px(g.AW)}×${px(g.AH)}px on the left; the ${px(g.PW)}×${px(g.PH)}px panel sits ${px(48)}px to its right, vertically centred`;
     return [
       targetLine(c.target, "a landing-page hero whose accent colour is re-coloured live from a Framer-style colour panel", c.width, c.height, c.seconds),
-      `Canvas ${p.background}; ${layout}. Font Geist everywhere, hex values in Geist Mono. ${dark ? "Dark UI: page " + p.page + ", cards #202127, hairlines #2A2B31, text #FFFFFF, secondary #8B8E97." : "Page " + p.page + ", ink #0E0F12, secondary #7B7E87, hairlines 1px #E8E8EC."} Cards use a tiny shadow (0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)). No glows.`,
-      `Hero, designed at ${g.DW}×${g.DH} and scaled ×${scale.toFixed(2)} into the artboard: nav ("Tempo" with a round accent mark, 4 links, ink "Get Tempo" button); a hairline pill with an accent "New" tag on a 12% accent tint; headline "${p.headline1}" / "${p.headline2}" at ${px(g.hl * scale)}px, weight 500, -0.045em, line-height 1.02, centred, the word "${word}" in the accent; subline "${p.subline}" at ${px(19 * scale)}px in the secondary colour, max 2 lines; a "${p.buttonLabel}" button filled with the accent (radius ${px(11 * scale)}, white text, ink text if the accent is light) beside a hairline "Watch demo" button.`,
-      `Preview strip bleeding off the artboard's bottom edge: a ${dark ? "#1C1D22" : "#F2F2EF"} tray (radius ${px(22 * scale)} top corners) holding a "This week" card with a 24.5h focus stat, a 6px progress bar at 62% in the accent, and 12 bars: 3 in full accent, the rest a ${dark ? 30 : 20}% accent tint.`,
-      `Panel "Color · Accent": radius ${px(14)}, 1px hairline, colour chip + title, a divider, then five ${px(g.S)}px swatches (radius ${px(g.S * 0.25)}, ${px(g.gap)}px apart): ${sw.join(", ")}. The selected swatch wears a 2px #0099FF ring 3px outside it. Rows: "Hex" (field #E5F4FF, #0099FF mono text with a colour chip) and "Used in" → "12 layers".`,
-      `Cursor: a #0099FF arrow with a white 1.6px outline and a "${p.cursorName}" name tag (14px, white on #0099FF, radius 3/9/9/9). It scales to 0.88 on each click.`,
-      `Start: swatch ${ia + 1} (${sw[ia]}) is the accent. At ${at(T.heroClick)} the cursor, resting on the hero, clicks it: a 1.5px #0099FF selection box with white corner handles, a "${g.DW} × ${g.DH}" size label below and a blue "Hero" frame name fades in over 0.25s.`,
-      `${at(T.move1[0])}–${at(T.move1[1])}: the cursor glides on a soft arc to swatch ${ib + 1} (${sw[ib]}) and clicks at ${at(T.click1)} (${pct(T.click1)}). The ring slides across in ${at(T.ring)}, the hex text swaps with a 10px vertical cross-fade, and the hero re-colours as a cascade: each accent element cross-fades over ${at(T.fade)} — button first, headline word +0.1s, pill tag +0.17s, logo mark +0.2s, progress +0.27s, then the bars left to right one frame apart.`,
-      `Hold, then ${at(T.move2[0])}–${at(T.move2[1])} the cursor moves back to swatch ${ia + 1} and clicks at ${at(T.click2)} (${pct(T.click2)}); the same cascade returns everything to ${sw[ia]}.`,
-      `${at(T.move3[0])}–${at(T.move3[1])}: the cursor returns to its resting spot on the hero and the selection fades out by ${at(T.selOut[1])}. The last frame matches the first, so it loops seamlessly.`,
-      `Ease every move and fade with ${p.ease} ${bezierText(p.ease)}.`,
+      `Background: flat canvas ${p.background}; ${layout}. Page, panel and cards ${p.card}, 1px ${p.line} hairlines, trays and fields ${p.fill}${dark ? ", no shadows on this dark canvas" : ", shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06) on the artboard and panel"}. No gradients or glows. Only one accent hue is ever on screen outside the swatch row.`,
+      `Type: Inter; hex values and the size label in Geist Mono. Headline "${p.headline1}" / "${p.headline2}" at ${px(g.hl * scale)}px, weight 400, -0.045em, line-height 1.02, centred in ${p.ink}, the word "${word}" in the accent. Subline "${p.subline}" at ${px(19 * scale)}px in ${p.ink2}. Labels and buttons weight 500; meta text in ${p.ink3}.`,
+      `Hero (designed at ${g.DW}×${g.DH}, scaled ×${scale.toFixed(2)}): nav with "Tempo", a round accent mark, 4 links in ${p.ink2} and a ${p.button} "Get Tempo" button; a hairline pill with an accent "New" tag on a 12% accent tint; a "${p.buttonLabel}" button filled with the accent (${p.onAccent} text, or ${p.ink} text on a light swatch) beside a hairline "Watch demo" button; a ${p.fill} tray bleeding off the bottom with a "This week" card: "24.5h" focus stat, a ${STROKE.bar}px progress bar at 62% in the accent and 12 bars (3 in the accent, the rest ${p.line}).`,
+      `Panel "Color · Accent": live colour dot + title, a ${STROKE.hair}px divider, five ${px(g.S)}px round swatches ${px(g.gap)}px apart: ${sw.join(", ")}. The selected one wears a ${STROKE.ring}px ring 5px outside it in the live accent. Rows "Hex" (mono hex with a colour dot) and "Used in" → "12 layers" in ${p.fill} fields.`,
+      `Cursor: a ${p.ink} arrow with a ${STROKE.hair}px ${p.card} outline and a "${p.cursorName}" tag (14px weight 500, ${p.card} on ${p.ink}). It scales to 0.88 on each click.`,
+      `Geometry: panel and fields radius ${RADIUS.button}, tray radius ${RADIUS.card} (top corners), hero buttons radius ${RADIUS.button}, chips and bar tops radius ${RADIUS.chip}, swatches and pills fully round.`,
+      "",
+      `Start: swatch ${ia + 1} (${sw[ia]}) is the accent. Frame ${fr(T.heroClick)}: the cursor clicks the hero; frames ${fr(T.selIn[0])}–${fr(T.selIn[1])} a ${STROKE.hair}px selection box in the accent fades in, its corner handles scale from 0.4, with a "${g.DW} × ${g.DH}" label below (${p.ease}, ${bezierText(p.ease)}).`,
+      `Frames ${fr(T.move1[0])}–${fr(T.move1[1])}: the cursor glides on a soft arc to swatch ${ib + 1} (${sw[ib]}) on travel, ${bezierText("travel")}, and clicks at frame ${fr(T.click1)}. The ring slides across over ${fr(T.ring)} frames on travel, the hex swaps with a 10px vertical cross-fade, and the hero re-colours as a cascade, each element cross-fading over ${fr(T.fade)} frames on ${p.ease}: button first, headline word +${fr(DELAY.word)}, tag +${fr(DELAY.tag)}, logo mark +${fr(DELAY.mark)}, progress +${fr(DELAY.progress)}, then the bars left to right one frame apart.`,
+      `Frames ${fr(T.move2[0])}–${fr(T.move2[1])}: the cursor moves back to swatch ${ia + 1} and clicks at frame ${fr(T.click2)}; the same cascade returns everything to ${sw[ia]}.`,
+      `Frames ${fr(T.move3[0])}–${fr(T.move3[1])}: the cursor returns to its resting spot on the hero while the selection fades out on exit, ${bezierText("exit")}, frames ${fr(T.selOut[0])}–${fr(T.selOut[1])}. Hold still to frame ${c.seconds * c.fps}; the last frame matches the first, so it loops seamlessly.`,
     ].join("\n");
   },
 });

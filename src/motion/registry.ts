@@ -15,8 +15,11 @@ import { batch as v2c } from "./batches/v2-c";
 import { batch as v2d } from "./batches/v2-d";
 import { batch as v2e } from "./batches/v2-e";
 import { batch as v2f } from "./batches/v2-f";
+import { batch as newA } from "./batches/new-a";
+import { batch as newB } from "./batches/new-b";
+import { batch as newC } from "./batches/new-c";
 
-export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f].sort((a, b) =>
+export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC].sort((a, b) =>
   b.addedAt.localeCompare(a.addedAt),
 );
 

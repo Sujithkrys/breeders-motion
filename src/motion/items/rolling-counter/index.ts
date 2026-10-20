@@ -1,14 +1,16 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, STAGGER, bezierText, secs, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { COUNTER, RollingCounter, parseValue, type RollingCounterProps } from "./RollingCounter";
+import { COUNTER, RollingCounter, counterTiming, parseValue, type RollingCounterProps } from "./RollingCounter";
 
-const palettes = [
-  { name: "Mint", swatch: ["#04130E", "#34F5A4", "#EFFFF7"], values: { background: "#04130E", ink: "#EFFFF7", quiet: "#6F9486", accent: "#34F5A4" } },
-  { name: "Peach", swatch: ["#FFF1E8", "#FF6B2C", "#2A140A"], values: { background: "#FFF1E8", ink: "#2A140A", quiet: "#A07E6C", accent: "#FF6B2C" } },
-  { name: "Violet", swatch: ["#0F0A1F", "#A78BFA", "#F4F0FF"], values: { background: "#0F0A1F", ink: "#F4F0FF", quiet: "#7D73A0", accent: "#A78BFA" } },
-  { name: "Gold", swatch: ["#121008", "#FFC53D", "#FFF8E6"], values: { background: "#121008", ink: "#FFF8E6", quiet: "#8E8467", accent: "#FFC53D" } },
-  { name: "Mono", swatch: ["#0B0B0C", "#E4E4E7", "#71717A"], values: { background: "#0B0B0C", ink: "#FAFAFA", quiet: "#71717A", accent: "#E4E4E7" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  fill: t.fill,
+  ink: t.ink,
+  ink2: t.ink2,
+  accent: t.accent,
+}));
+
+const r0 = (n: number) => Math.round(n);
 
 export default defineMotion<RollingCounterProps>({
   slug: "rolling-counter",
@@ -26,7 +28,7 @@ export default defineMotion<RollingCounterProps>({
     value: "$2.4M",
     caption: "Annual recurring revenue",
     badge: "38% year over year",
-    stagger: 4,
+    stagger: STAGGER,
     spins: 1,
     ease: "enter",
   } as RollingCounterProps,
@@ -36,27 +38,32 @@ export default defineMotion<RollingCounterProps>({
     { type: "text", key: "caption", label: "Caption", maxLength: 36 },
     { type: "text", key: "badge", label: "Badge", maxLength: 24 },
     { type: "color", key: "accent", label: "Accent" },
+    { type: "color", key: "background", label: "Background" },
     { type: "number", key: "stagger", label: "Digit stagger", min: 0, max: 6, step: 1, unit: "f" },
     { type: "number", key: "spins", label: "Extra spins", min: 0, max: 3, step: 1 },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
   prompt: (p, c) => {
-    const { prefix, body, suffix } = parseValue(p.value);
-    const digits = (body.match(/\d/g) ?? []).length;
-    const end = COUNTER.start + Math.max(digits - 1, 0) * p.stagger + COUNTER.roll;
+    const { prefix, suffix } = parseValue(p.value);
+    const dur = Math.round(c.seconds * c.fps);
+    const { st, rollEnd } = counterTiming(p.value, p.stagger, dur);
+    const badgeA = r0(rollEnd - 8);
+    const spins = Math.max(0, Math.round(p.spins));
+    const vertical = c.height > c.width;
     return [
       targetLine(c.target, `an odometer counter rolling up to "${p.value}" with a caption`, c.width, c.height, c.seconds),
-      `Background ${p.background}, with a soft ${p.accent} radial glow (20% opacity) behind the number. Font Geist, centred.`,
-      `Number: ${COUNTER.base}px (shrink to fit 84% of the width), weight 650, tracking -0.04em, line height 1.1, colour ${p.ink}.`,
-      `${prefix ? `Prefix "${prefix}"` : "No prefix"} and ${suffix ? `suffix "${suffix}"` : "no suffix"} in ${p.accent}; the prefix fades up 40px at the start, the suffix as the last digit lands. Separators like "." fade in.`,
-      `Each digit is its own ${COUNTER.digitWidth}em-wide, 1.1em-tall overflow-hidden column with a top/bottom fade mask (14%). Render only the current and next digit and offset them by the fractional position, so it rolls upward like an odometer.`,
-      `Each column counts from 0 through ${p.spins} extra full turn${p.spins === 1 ? "" : "s"} to its digit over ${secs(COUNTER.roll, c.fps)}, starting at frame ${COUNTER.start} and staggered ${p.stagger} frames left to right.`,
-      `Ease ${p.ease} ${bezierText(p.ease)}. Add a motion blur of min(speed × 5, 7)px, where speed is digits per frame.`,
+      `Background: flat ${p.background}. No glow, no gradient, nothing behind the number. Everything centred. Sizes are px at 1080 on the short side.`,
+      `Type: Inter only. Number ${vertical ? COUNTER.baseVertical : COUNTER.base}px (shrink to fit 84% of the width), weight 600, tracking -0.045em, line height 1.1, tabular figures, ${p.ink}. ${prefix ? `Prefix "${prefix}"` : "No prefix"} and ${suffix ? `suffix "${suffix}"` : "no suffix"} in the same size and weight but ${p.ink2}, so the digits lead by grey, not colour.`,
+      p.caption.trim() ? `Caption "${p.caption}" 18px below: 36px, weight 400, -0.015em, ${p.ink2}.` : "No caption.",
       p.badge.trim()
-        ? `Above the number, a pill "${p.badge}" with a small up triangle: 30px weight 600 in ${p.accent} on ${p.accent} at 14% with a 1.5px border at 38%; it pops in (scale 0.92 → 1) as the roll finishes.`
-        : "No badge.",
-      p.caption.trim() ? `Below, the caption "${p.caption}" at 44px, weight 400, tracking -0.015em, in ${p.quiet}; it fades up 24px from frame ${COUNTER.start + 14}.` : "No caption.",
-      `Everything settles by ${secs(end + 10, c.fps)}; hold the final number to the end.`,
+        ? `Badge above the number, 28px gap: a pill (radius 999) "${p.badge}" in Inter 26px/500 ${p.ink2} on ${p.fill}, 10px × 20px padding, led by a 14px up-triangle in ${p.accent}; the triangle is the only accent in the frame.`
+        : `No badge; ${p.accent} is unused.`,
+      `Digits: each is its own ${COUNTER.digitWidth}em-wide, 1.1em-tall overflow-hidden column with a top/bottom fade mask (14%). Render only the current and next digit, offset by the fractional position, so it rolls upward like an odometer.`,
+      "",
+      `Frame ${COUNTER.start}: columns start left to right, ${Number(st.toFixed(2))} frames apart; each counts from 0 through ${spins} extra full turn${spins === 1 ? "" : "s"} to its digit over ${COUNTER.roll} frames (${secs(COUNTER.roll, c.fps)}), ${p.ease} ${bezierText(p.ease)}, with a motion blur of min(speed × 5, 7)px where speed is digits per frame.`,
+      `Frame ${COUNTER.start}–${COUNTER.start + COUNTER.prefixIn}: the prefix fades up 40px; separators like "." fade in over ${COUNTER.sepIn} frames. Frame ${COUNTER.captionAt}–${COUNTER.captionAt + COUNTER.captionIn}: the caption fades up 24px. Frame ${r0(rollEnd - 14)}–${r0(rollEnd - 14 + COUNTER.suffixIn)}: the suffix fades up 40px as the last digit lands. All ${p.ease}.`,
+      ...(p.badge.trim() ? [`Frame ${badgeA}–${badgeA + COUNTER.badgeIn}: the badge rises 14px, fades in and scales 0.92 → 1 (${p.ease}).`] : []),
+      `Everything is settled by frame ${r0(rollEnd + COUNTER.settle)}; hold the final number still to frame ${dur}.`,
     ].join("\n");
   },
 });

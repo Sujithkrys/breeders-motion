@@ -1,34 +1,23 @@
-import { EASE_OPTIONS, bezierText, targetLine } from "../../kit";
+import { EASE_OPTIONS, RADIUS, STAGGER, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { LeaderboardReorder, parseBoard, ranksOf, type LeaderboardReorderProps } from "./LeaderboardReorder";
+import { BAR_GREY, LB, LeaderboardReorder, boardLayout, introStagger, isDarkHex, mixHex, parseBoard, ranksOf, type LeaderboardReorderProps } from "./LeaderboardReorder";
 
-const palettes = [
-  {
-    name: "Gold",
-    swatch: ["#0E0D12", "#4A4654", "#FFC53D"],
-    values: { background: "#0E0D12", ink: "#F7F5EF", muted: "#8F8B98", track: "#24222B", bar: "#4A4654", accent: "#FFC53D", accentInk: "#1A1405", pos: "#4ADE80", neg: "#FB7185" },
-  },
-  {
-    name: "Pine",
-    swatch: ["#06110D", "#2B4A3E", "#34D399"],
-    values: { background: "#06110D", ink: "#EAFBF3", muted: "#7F9C90", track: "#14261E", bar: "#2B4A3E", accent: "#34D399", accentInk: "#03170F", pos: "#A3E635", neg: "#FB923C" },
-  },
-  {
-    name: "Sorbet",
-    swatch: ["#FBF6F1", "#D3C4B5", "#F0503C"],
-    values: { background: "#FBF6F1", ink: "#1D1714", muted: "#85796F", track: "#EDE4DA", bar: "#D3C4B5", accent: "#F0503C", accentInk: "#FFFFFF", pos: "#15945F", neg: "#D9452B" },
-  },
-  {
-    name: "Violet",
-    swatch: ["#0D0918", "#3B3260", "#C084FC"],
-    values: { background: "#0D0918", ink: "#F2EDFF", muted: "#948BB0", track: "#1F1933", bar: "#3B3260", accent: "#C084FC", accentInk: "#1A0B33", pos: "#5EEAD4", neg: "#FDA4AF" },
-  },
-  {
-    name: "Graphite",
-    swatch: ["#0E0E10", "#3A3A40", "#F5F5F6"],
-    values: { background: "#0E0E10", ink: "#F5F5F6", muted: "#8A8A92", track: "#1E1E22", bar: "#3A3A40", accent: "#F5F5F6", accentInk: "#0E0E10", pos: "#4ADE80", neg: "#F87171" },
-  },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  fill: t.fill,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  accent: t.accent,
+  onAccent: t.onAccent,
+  success: t.success,
+  error: t.error,
+}));
+
+const r0 = (n: number) => Math.round(n);
+const r1 = (n: number) => Math.round(n * 10) / 10;
 
 export default defineMotion<LeaderboardReorderProps>({
   slug: "leaderboard-reorder",
@@ -47,8 +36,8 @@ export default defineMotion<LeaderboardReorderProps>({
     names: "Atlas,Lumen,Orbit,Kestrel,Nova",
     from: "82,74,61,55,40",
     to: "71,96,58,83,64",
-    stagger: 5,
-    ease: "enter",
+    stagger: STAGGER,
+    ease: "travel",
   } as LeaderboardReorderProps,
   palettes,
   controls: [
@@ -57,27 +46,35 @@ export default defineMotion<LeaderboardReorderProps>({
     { type: "text", key: "from", label: "Start values", maxLength: 60 },
     { type: "text", key: "to", label: "End values", maxLength: 60 },
     { type: "color", key: "accent", label: "Leader" },
-    { type: "number", key: "stagger", label: "Intro stagger", min: 2, max: 8, step: 1, unit: "f" },
+    { type: "color", key: "background", label: "Background" },
+    { type: "number", key: "stagger", label: "Intro stagger", min: 2, max: 6, step: 1, unit: "f" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
   prompt: (p, c) => {
     const { rows } = parseBoard(p.names, p.from, p.to);
+    const n = rows.length;
     const rf = ranksOf(rows.map((r) => r.from));
     const rt = ranksOf(rows.map((r) => r.to));
     const endOrder = rows.map((r, i) => ({ r, i })).sort((a, b) => rt[a.i] - rt[b.i]);
+    const L = boardLayout(c.width, c.height, n);
+    const px = (v: number) => `${r0(v / L.u)}px`;
+    const st = r1(introStagger(p.stagger, n));
+    const chipA = LB.T1 - LB.chipLead;
+    const shadow = isDarkHex(p.background) ? "no shadow" : "shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)";
     return [
-      targetLine(c.target, `a ${rows.length}-row leaderboard whose bars grow to new values and reorder smoothly`, c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist; numbers in Geist Mono with tabular figures. Text ${p.ink}, secondary ${p.muted}.`,
-      `Rows (comma-separated props): ${rows.map((r) => `${r.name} ${r.from} → ${r.to}`).join(", ")}. Final order: ${endOrder.map((o) => o.r.name).join(", ")}.`,
+      targetLine(c.target, `a ${n}-row leaderboard card whose bars grow to new values and reorder smoothly`, c.width, c.height, c.seconds),
+      `Background: flat ${p.background}. Sizes are px at 1080 on the short side.`,
+      `Type: Inter; Geist Mono with tabular figures for the label, ranks, values and chips. Mono label "TOP ${n} · RANKED" 18px, +0.12em, uppercase, ${p.ink3}. Title "${p.title}" ${L.wide ? 48 : 44}px, weight 400, -0.035em, ${p.ink}. Names ${L.vertical ? 30 : 28}px ${p.ink}, weight 500 for the leader and 400 for the rest. Values 24px mono: the leader's in ${p.ink} at 600, the rest ${p.ink2} at 500.`,
+      `Card: ${px(L.cardW)}×${px(L.cardH)}, centred, fill ${p.card}, 1px ${p.line} border, radius ${RADIUS.card}px, ${shadow}, padding ${px(L.pad)}. Rows are ${px(L.rowH)} tall.`,
+      `Left column: static ${px(L.badge)} rank circles 1–${n} in mono 20px/500; #1 is ${p.accent} with ${p.onAccent} text, the rest ${p.fill} with ${p.ink2} text.`,
+      `Each row: name, then a ${px(L.barH)} bar with radius ${RADIUS.chip}px on a ${p.fill} track${L.vertical ? " below the name" : ""}, one shared scale (the largest start or end value). Bars are solid grey ${mixHex(p.fill, p.ink3, BAR_GREY)}; the row in the #1 slot cross-fades its bar to solid ${p.accent}, so the accent follows whoever moves into first. No gradients, no glow.`,
+      `Rank-change chips (pill, mono 18px/500, small triangle): climbers ${p.success} on ${p.success} at 12%, fallers ${p.error} on ${p.error} at 12%. ${rows.map((r, i) => `${r.name} ${rf[i] - rt[i] > 0 ? "+" : ""}${rf[i] - rt[i]}`).join(", ")}.`,
+      `Rows: ${rows.map((r) => `${r.name} ${r.from} → ${r.to}`).join(", ")}. Final order: ${endOrder.map((o) => o.r.name).join(", ")}.`,
       "",
-      `Header: mono uppercase "TOP ${rows.length} · RANKED" (20px, 0.14em) over the title "${p.title}" (68px, weight 650, -0.04em). Block 1240px wide, centred.`,
-      `Left column: static 56px rank circles 1–${rows.length}; #1 is ${p.accent} with ${p.accentInk} text, the rest ${p.track} with ${p.muted} text. Rows are 120px tall.`,
-      `Each row: name 30px (weight 650 when leading), a 40px bar (radius 12) on a ${p.track} track, gradient ${p.bar}; values in 26px mono after the bar end. One shared scale = the largest start or end value.`,
-      `The row in the #1 slot cross-fades its bar to ${p.accent} with a soft glow, so the highlight follows whoever is moving into first.`,
-      "",
-      `0.27s on: rows slide in 40px from the right and bars grow to their start values, ${p.stagger} frames apart.`,
-      `2.4s → 4s: values interpolate to the end values while each row's y moves from its old rank to its new one, ease ${p.ease} ${bezierText(p.ease)}. Climbing rows sit on top and scale up 2% mid-move.`,
-      `At 4s, rank-change chips pop in at the right: ▲ in ${p.pos} for climbers, ▼ in ${p.neg} for fallers (${rows.map((r, i) => `${r.name} ${rf[i] - rt[i] > 0 ? "+" : ""}${rf[i] - rt[i]}`).join(", ")}). Hold for the last 2s.`,
+      `Frame 0–${LB.cardIn}: the card fades in and rises 24px; frame ${LB.headA}–${LB.headB}: the header fades up 16px. Ease enter ${bezierText("enter")}.`,
+      `From frame ${LB.slotA}, ${st} frames apart: rank circles fade and scale 0.8 → 1 over ${LB.slotIn} frames; rows slide in 40px from the right and fade over ${LB.rowIn} frames while bars grow to their start values (enter).`,
+      `Frame ${LB.T0}–${LB.T1}: values interpolate to the end values while each row's y travels from its old rank to its new one, ${p.ease} ${bezierText(p.ease)}. Climbing rows sit on top and scale up 2% mid-move.`,
+      `Frame ${chipA}–${chipA + LB.chipIn}: chips fade and scale 0.8 → 1 (enter). Still from frame ${chipA + LB.chipIn} to the end.`,
     ].join("\n");
   },
 });

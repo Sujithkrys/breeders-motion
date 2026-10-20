@@ -1,12 +1,19 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { FONT_MONO, FONT_SANS, mix, progress, useLayout } from "../../kit";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
+import { FONT_MONO, FONT_SANS, RADIUS, STROKE, mix, progress, useLayout } from "../../kit";
 import type { Ratio } from "../../types";
 
 export type AmountReceiptProps = {
   background: string;
   card: string;
+  line: string;
+  fill: string;
+  ink: string;
+  ink2: string;
+  button: string;
+  onButton: string;
   accent: string;
+  onAccent: string;
   recipient: string;
   initials: string;
   currency: string;
@@ -17,15 +24,33 @@ export type AmountReceiptProps = {
   ease: string;
 };
 
-// Timeline (frames at 30fps, 180 total). The morph runs LEN frames from MORPH; at BACK the same windows play mirrored.
+// Timeline (frames at 30fps, 180 total). The morph forward starts at MORPH; the fold back starts at BACK and is done by
+// frame 164, so the last 12 frames hold the sheet still and the loop restarts without a jolt.
 export const T = {
   cursorFrom: 4,
   press: 24,
-  morph: 30,
-  len: 44,
-  back: 130,
+  morph: 28,
+  back: 120,
   cursorOut: [40, 54] as const,
-  cursorIn: [164, 178] as const,
+  cursorIn: [144, 166] as const,
+};
+
+// Windows, in frames after MORPH (forward) and after BACK (fold back): [fwdFrom, fwdTo, backFrom, backTo].
+// Parts that arrive forward enter over 18 frames and leave on the way back over 14; sheet parts do the opposite.
+export type Win = readonly [number, number, number, number];
+export const W = {
+  out: [0, 12, 24, 42] as Win, // sheet-only parts
+  card: [2, 28, 14, 40] as Win,
+  amount: [2, 28, 14, 40] as Win,
+  button: [4, 30, 12, 38] as Win,
+  who: [5, 31, 11, 37] as Win,
+  note: [8, 34, 8, 34] as Win,
+  sendLabel: [4, 16, 22, 40] as Win,
+  shareLabel: [10, 28, 8, 22] as Win,
+  check: [12, 30, 4, 18] as Win,
+  draw: [16, 30, 4, 18] as Win,
+  head: [14, 32, 2, 16] as Win,
+  row: (i: number): Win => [12 + 3 * i, 30 + 3 * i, (4 - i) * 3, (4 - i) * 3 + 14],
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -165,34 +190,20 @@ export const layoutFor = (ratio: Ratio): ReceiptLayout => {
   };
 };
 
-// Rough Geist advance widths (em) so long amounts shrink to fit instead of overflowing the card.
+// Rough Inter advance widths (em) so long amounts shrink to fit instead of overflowing the card.
 const amountEm = (s: string) =>
   s.split("").reduce((a, c) => a + (/[0-9]/.test(c) ? 0.6 : /[.,' ]/.test(c) ? 0.28 : 0.64) - 0.045, 0);
 export const fitSize = (s: string, size: number, maxW: number) => Math.min(size, maxW / Math.max(amountEm(s), 0.5));
 
-export const isLight = (hex: string) => {
+export const isDark = (hex: string) => {
   const h = hex.replace("#", "");
   const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h.slice(0, 6), 16);
-  return 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 150;
-};
-
-export const tones = (card: string, accent: string, background: string) => {
-  const light = isLight(card);
-  return {
-    light,
-    darkCanvas: !isLight(background),
-    text: light ? "#0E0F12" : "#FFFFFF",
-    sub: light ? "#7B7E87" : "rgba(255,255,255,0.56)",
-    hair: light ? "#E8E8EC" : "rgba(255,255,255,0.10)",
-    fill: light ? "#F2F2EF" : "rgba(255,255,255,0.07)",
-    onAccent: isLight(accent) ? "#0E0F12" : "#FFFFFF",
-  };
+  return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255 < 0.4;
 };
 
 export const DATE_TEXT = "Oct 20, 2026 · 9:41 AM";
 export const CHIP_TEXT = "From Checking •• 4821";
 
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const c01 = (v: number) => Math.min(1, Math.max(0, v));
 
 export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
@@ -200,26 +211,23 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
   const { u, ratio } = useLayout();
   const L = layoutFor(ratio);
   const { S, R, sheet, receipt } = L;
-  const c = tones(p.card, p.accent, p.background);
 
-  // A window [a, b] inside the morph. Forward from MORPH; mirrored from BACK so the receipt folds back last-in first-out.
-  const win = (a: number, b: number, ease: string = p.ease) =>
-    frame < T.back
-      ? progress(frame, T.morph + a, T.morph + b, ease)
-      : 1 - progress(frame, T.back + T.len - b, T.back + T.len - a, ease);
+  // A window: forward from MORPH on `fwd`, folded back from BACK on `back` (1 = receipt state).
+  const win = (w: Win, fwd: string, back: string) =>
+    frame < T.back ? progress(frame, T.morph + w[0], T.morph + w[1], fwd) : 1 - progress(frame, T.back + w[2], T.back + w[3], back);
 
-  const mOut = win(0, 10, "travel");
-  const mCard = win(2, 28);
-  const mAmt = win(2, 28);
-  const mBtn = win(4, 30);
-  const mWho = win(5, 31);
-  const mNote = win(8, 34);
-  const lblOut = win(4, 12, "travel");
-  const lblIn = win(10, 20, "travel");
-  const mCheck = win(12, 24);
-  const mDraw = win(16, 30, "travel");
-  const mHead = win(14, 26, "travel");
-  const rowIn = (i: number) => win(16 + 3 * i, 30 + 3 * i, "travel");
+  const mOut = win(W.out, "exit", "enter");
+  const mCard = win(W.card, p.ease, p.ease);
+  const mAmt = win(W.amount, p.ease, p.ease);
+  const mBtn = win(W.button, p.ease, p.ease);
+  const mWho = win(W.who, p.ease, p.ease);
+  const mNote = win(W.note, p.ease, p.ease);
+  const lblOut = win(W.sendLabel, "exit", "enter");
+  const lblIn = win(W.shareLabel, "enter", "exit");
+  const mCheck = win(W.check, "enter", "exit");
+  const mDraw = win(W.draw, "travel", "exit");
+  const mHead = win(W.head, "enter", "exit");
+  const rowIn = (i: number) => win(W.row(i), "enter", "exit");
 
   // Card box, centred on the canvas.
   const cw = mix(S.w, R.w, mCard) * u;
@@ -237,22 +245,21 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
   const rSize = fitSize(amountText, R.amount.size, R.amount.maxW);
   const kA = c01(mAmt);
 
-  const blur = (v: number) => (v > 0.002 && v < 0.998 ? `blur(${v * 6 * u}px)` : undefined);
   const fadeOut = (extra = ""): React.CSSProperties => ({
     opacity: 1 - mOut,
-    filter: blur(mOut),
     transform: `${extra} translateY(${-mOut * 8 * u}px)`,
   });
   const fadeIn = (t: number, extra = ""): React.CSSProperties => ({
     opacity: c01(t),
-    filter: blur(1 - c01(t)),
     transform: `${extra} translateY(${(1 - t) * 14 * u}px)`,
   });
 
   const abs: React.CSSProperties = { position: "absolute", whiteSpace: "nowrap", lineHeight: 1 };
+  const hair = STROKE.hair * u;
 
-  // Button press.
-  const press = interpolate(frame, [T.press, T.press + 3, T.press + 9], [1, 0.965, 1], clamp);
+  // Button press: down over 3 frames, back up over 6.
+  const pressT = progress(frame, T.press, T.press + 3, "travel") - progress(frame, T.press + 3, T.press + 9, "travel");
+  const press = 1 - 0.035 * pressT;
   const bx = lerpX(S.button.x, S.w, R.button.x, R.w, mBtn);
   const by = lerpY(S.button.y, S.h, R.button.y, R.h, mBtn);
   const bw = mix(S.button.w, R.button.w, mBtn) * u;
@@ -261,14 +268,14 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
   // Cursor: rests just under the button, glides in on a slight arc, presses, then fades; returns before the loop point.
   const tip = { x: (S.button.x + S.button.w * 0.62 - S.w / 2) * u, y: (S.button.y + S.button.h * 0.56 - S.h / 2) * u };
   const rest = { x: tip.x + 170 * u, y: (S.button.y + S.button.h + 36 - S.h / 2) * u };
-  const go = progress(frame, T.cursorFrom, T.press, "enter");
-  const gone = progress(frame, T.cursorOut[0], T.cursorOut[1], "travel");
-  const back = progress(frame, T.cursorIn[0], T.cursorIn[1], "travel");
+  const go = progress(frame, T.cursorFrom, T.press, "travel");
+  const gone = progress(frame, T.cursorOut[0], T.cursorOut[1], "exit");
+  const back = progress(frame, T.cursorIn[0], T.cursorIn[1], "enter");
   const returning = frame >= T.cursorIn[0];
   const curX = returning ? rest.x + (1 - back) * 20 * u : mix(rest.x, tip.x, go) + gone * 22 * u;
   const curY = returning ? rest.y + (1 - back) * 20 * u : mix(rest.y, tip.y, go) - Math.sin(Math.PI * go) * 46 * u + gone * 26 * u;
   const curO = returning ? back : 1 - gone;
-  const curS = interpolate(frame, [T.press, T.press + 3, T.press + 9], [1, 0.9, 1], clamp);
+  const curS = 1 - 0.1 * pressT;
   const curD = 42 * u;
 
   const rows: { label: string; value: string; mono?: boolean; strong?: boolean }[] = [
@@ -282,16 +289,14 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
   const rRight = cr - (R.w - receipt.rows.right) * u;
   const rTop = (y: number) => ct + y * u;
 
-  const cardBorder = c.light || c.darkCanvas ? `${1 * u}px solid ${c.light ? "#E8E8EC" : "rgba(255,255,255,0.07)"}` : "none";
-  const cardShadow = c.darkCanvas
-    ? "none"
-    : c.light
-      ? `0 ${1 * u}px ${2 * u}px rgba(0,0,0,0.04), 0 ${8 * u}px ${24 * u}px rgba(0,0,0,0.06)`
-      : `0 ${1 * u}px ${2 * u}px rgba(0,0,0,0.08), 0 ${14 * u}px ${36 * u}px rgba(0,0,0,0.12)`;
+  const cardShadow = isDark(p.background) ? "none" : `0 ${1 * u}px ${2 * u}px rgba(0,0,0,0.04), 0 ${8 * u}px ${24 * u}px rgba(0,0,0,0.06)`;
+  const closeIcon = sheet.header.close * 0.42 * u;
+  const checkIcon = receipt.check.d * 0.56 * u;
+  const shareIcon = R.button.size * 0.95 * u;
 
   return (
     <AbsoluteFill style={{ background: p.background, fontFamily: FONT_SANS }}>
-      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, color: c.text }}>
+      <div style={{ position: "absolute", left: "50%", top: "50%", width: 0, height: 0, color: p.ink }}>
         {/* Card */}
         <div
           style={{
@@ -300,9 +305,9 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
             top: ct,
             width: cw,
             height: ch,
-            borderRadius: mix(S.r, R.r, mCard) * u,
+            borderRadius: RADIUS.hero * u,
             background: p.card,
-            border: cardBorder,
+            border: `${1 * u}px solid ${p.line}`,
             boxShadow: cardShadow,
             boxSizing: "border-box",
           }}
@@ -321,20 +326,20 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
                 top: ct + (sheet.header.cy - sheet.header.close / 2) * u,
                 width: sheet.header.close * u,
                 height: sheet.header.close * u,
-                borderRadius: "50%",
-                background: c.fill,
+                borderRadius: 999,
+                background: p.fill,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 ...fadeOut(),
               }}
             >
-              <svg width={sheet.header.close * 0.42 * u} height={sheet.header.close * 0.42 * u} viewBox="0 0 24 24" fill="none" stroke={c.sub} strokeWidth={2.4} strokeLinecap="round">
+              <svg width={closeIcon} height={closeIcon} viewBox="0 0 24 24" fill="none" stroke={p.ink2} strokeWidth={(STROKE.ring * u * 24) / closeIcon} strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
             </div>
-            <div style={{ ...abs, left: cl + S.name.x * u, top: ct + sheet.to.y * u, fontSize: sheet.to.size * u, color: c.sub, ...fadeOut() }}>To</div>
-            <div style={{ ...abs, left: cl + S.p * u, top: ct + sheet.divY * u, width: (S.w - 2 * S.p) * u, height: Math.max(1, u), background: c.hair, ...fadeOut() }} />
+            <div style={{ ...abs, left: cl + S.name.x * u, top: ct + sheet.to.y * u, fontSize: sheet.to.size * u, color: p.ink2, ...fadeOut() }}>To</div>
+            <div style={{ ...abs, left: cl + S.p * u, top: ct + sheet.divY * u, width: (S.w - 2 * S.p) * u, height: hair, background: p.line, ...fadeOut() }} />
             <div
               style={{
                 ...abs,
@@ -342,9 +347,9 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
                 top: ct + sheet.chip.cy * u,
                 height: sheet.chip.h * u,
                 padding: `0 ${sheet.chip.h * 0.42 * u}px`,
-                borderRadius: sheet.chip.h * u,
-                background: c.fill,
-                color: c.sub,
+                borderRadius: 999,
+                background: p.fill,
+                color: p.ink2,
                 fontSize: sheet.chip.size * u,
                 display: "flex",
                 alignItems: "center",
@@ -360,12 +365,12 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
                 top: ct + sheet.field.y * u,
                 width: (S.w - 2 * S.p) * u,
                 height: sheet.field.h * u,
-                borderRadius: 22 * u,
-                background: c.fill,
+                borderRadius: RADIUS.button * u,
+                background: p.fill,
                 ...fadeOut(),
               }}
             >
-              <span style={{ position: "absolute", left: 32 * u, top: "50%", transform: "translateY(-50%)", fontSize: sheet.field.label * u, color: c.sub }}>Note</span>
+              <span style={{ position: "absolute", left: 32 * u, top: "50%", transform: "translateY(-50%)", fontSize: sheet.field.label * u, color: p.ink2 }}>Note</span>
             </div>
           </>
         )}
@@ -373,11 +378,9 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
         {/* ---- Receipt-only parts (arrive after the anchors start moving) ---- */}
         {mHead > 0 && (
           <>
-            {receipt.split !== null && (
-              <div style={{ ...abs, left: cl + receipt.split * u, top: ct, width: Math.max(1, u), height: ch, background: c.hair, opacity: c01(mHead) }} />
-            )}
+            {receipt.split !== null && <div style={{ ...abs, left: cl + receipt.split * u, top: ct, width: hair, height: ch, background: p.line, opacity: c01(mHead) }} />}
             {receipt.title && (
-              <div style={{ ...abs, left: rx, top: ct + receipt.title.cy * u, fontSize: receipt.title.size * u, color: c.sub, ...fadeIn(mHead, "translateY(-50%)") }}>Details</div>
+              <div style={{ ...abs, left: rx, top: ct + receipt.title.cy * u, fontSize: receipt.title.size * u, color: p.ink2, ...fadeIn(mHead, "translateY(-50%)") }}>Details</div>
             )}
             <div style={{ ...abs, left: cl + receipt.sent.x * u, top: ct + receipt.sent.cy * u, fontSize: receipt.sent.size * u, fontWeight: 500, letterSpacing: "-0.02em", ...fadeIn(mHead, "translateY(-50%)") }}>
               Sent
@@ -385,10 +388,10 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
             <div
               style={{
                 ...abs,
-                left: (receipt.split !== null ? cl + receipt.now.right * u : cr - (R.w - receipt.now.right) * u),
+                left: receipt.split !== null ? cl + receipt.now.right * u : cr - (R.w - receipt.now.right) * u,
                 top: ct + receipt.sent.cy * u,
                 fontSize: receipt.now.size * u,
-                color: c.sub,
+                color: p.ink2,
                 ...fadeIn(mHead, "translate(-100%, -50%)"),
               }}
             >
@@ -404,7 +407,7 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
               top: ct + receipt.check.y * u,
               width: receipt.check.d * u,
               height: receipt.check.d * u,
-              borderRadius: "50%",
+              borderRadius: 999,
               background: p.accent,
               display: "flex",
               alignItems: "center",
@@ -413,7 +416,7 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
               transform: `scale(${mix(0.6, 1, mCheck)})`,
             }}
           >
-            <svg width={receipt.check.d * 0.56 * u} height={receipt.check.d * 0.56 * u} viewBox="0 0 24 24" fill="none" stroke={c.onAccent} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+            <svg width={checkIcon} height={checkIcon} viewBox="0 0 24 24" fill="none" stroke={p.onAccent} strokeWidth={(STROKE.ring * u * 24) / checkIcon} strokeLinecap="round" strokeLinejoin="round">
               <path d="M6.5 12.5l3.6 3.6L17.5 8.6" strokeDasharray={15} strokeDashoffset={15 * (1 - c01(mDraw))} />
             </svg>
           </div>
@@ -425,8 +428,8 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
           const fs = receipt.rows.size * u;
           return (
             <React.Fragment key={row.label}>
-              <div style={{ ...abs, left: rx, top: rTop(receipt.rows.y0 + receipt.rows.rh * i), width: rRight - rx, height: Math.max(1, u), background: c.hair, opacity: c01(t) }} />
-              <div style={{ ...abs, left: rx, top: cy, fontSize: fs, color: row.strong ? c.text : c.sub, fontWeight: row.strong ? 500 : 400, ...fadeIn(t, "translateY(-50%)") }}>{row.label}</div>
+              <div style={{ ...abs, left: rx, top: rTop(receipt.rows.y0 + receipt.rows.rh * i), width: rRight - rx, height: hair, background: p.line, opacity: c01(t) }} />
+              <div style={{ ...abs, left: rx, top: cy, fontSize: fs, color: row.strong ? p.ink : p.ink2, fontWeight: row.strong ? 500 : 400, ...fadeIn(t, "translateY(-50%)") }}>{row.label}</div>
               {row.value !== "" && (
                 <div
                   style={{
@@ -435,7 +438,7 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
                     top: cy,
                     fontSize: row.mono ? fs * 0.92 : fs,
                     fontFamily: row.mono ? FONT_MONO : FONT_SANS,
-                    fontWeight: row.strong ? 600 : 500,
+                    fontWeight: row.strong ? 600 : row.mono ? 400 : 500,
                     letterSpacing: row.mono ? "0.02em" : "-0.01em",
                     ...fadeIn(t, "translate(-100%, -50%)"),
                   }}
@@ -459,8 +462,8 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
                 top: lerpY(S.avatar.y, S.h, R.avatar.y, R.h, mWho),
                 width: d,
                 height: d,
-                borderRadius: "50%",
-                background: c.fill,
+                borderRadius: 999,
+                background: p.fill,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -515,8 +518,9 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
             left: lerpX(S.amount.x, S.w, R.amount.x, R.w, mAmt),
             top: lerpY(S.amount.cy, S.h, R.amount.cy, R.h, mAmt),
             fontSize: sSize * u,
-            fontWeight: 500,
+            fontWeight: 400,
             letterSpacing: "-0.045em",
+            fontVariantNumeric: "tabular-nums",
             transformOrigin: `${50 * (1 - kA)}% 50%`,
             transform: `translate(${-50 * (1 - kA)}%, -50%) scale(${mix(1, rSize / sSize, mAmt)})`,
           }}
@@ -531,9 +535,9 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
             top: by,
             width: bw,
             height: bh,
-            borderRadius: bh / 2,
-            background: p.accent,
-            color: c.onAccent,
+            borderRadius: 999,
+            background: p.button,
+            color: p.onButton,
             overflow: "hidden",
             transform: `scale(${press})`,
           }}
@@ -554,8 +558,7 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
                 letterSpacing: "-0.02em",
                 whiteSpace: "nowrap",
                 opacity: 1 - lblOut,
-                filter: blur(lblOut * 0.7),
-                transform: `translateY(${-lblOut * bh * 0.4}px)`,
+                transform: `translateY(${-lblOut * bh * 0.3}px)`,
               }}
             >
               {p.buttonLabel}
@@ -578,11 +581,10 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
                 letterSpacing: "-0.02em",
                 whiteSpace: "nowrap",
                 opacity: c01(lblIn),
-                filter: blur((1 - c01(lblIn)) * 0.7),
-                transform: `translateY(${(1 - lblIn) * bh * 0.4}px)`,
+                transform: `translateY(${(1 - lblIn) * bh * 0.3}px)`,
               }}
             >
-              <svg width={R.button.size * 0.95 * u} height={R.button.size * 0.95 * u} viewBox="0 0 24 24" fill="none" stroke={c.onAccent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg width={shareIcon} height={shareIcon} viewBox="0 0 24 24" fill="none" stroke={p.onButton} strokeWidth={(STROKE.ring * u * 24) / shareIcon} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 3.5v11M8 7.5l4-4 4 4M6 11.5v7a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-7" />
               </svg>
               Share receipt
@@ -606,13 +608,7 @@ export const AmountReceipt: React.FC<AmountReceiptProps> = (p) => {
               overflow: "visible",
             }}
           >
-            <path
-              d="M3 2.5 L3 21.5 L8.3 16.6 L11.8 24.4 L15 23 L11.6 15.4 L18.8 15.4 Z"
-              fill={c.light ? "#0E0F12" : "#FFFFFF"}
-              stroke={c.light ? "#FFFFFF" : "#0E0F12"}
-              strokeWidth={1.6}
-              strokeLinejoin="round"
-            />
+            <path d="M3 2.5 L3 21.5 L8.3 16.6 L11.8 24.4 L15 23 L11.6 15.4 L18.8 15.4 Z" fill={p.ink} stroke={p.card} strokeWidth={(STROKE.hair * u * 28) / curD} strokeLinejoin="round" />
           </svg>
         )}
       </div>

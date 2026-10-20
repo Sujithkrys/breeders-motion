@@ -1,14 +1,20 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, RADIUS, STROKE, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { BTN, CLICK_AT, CheckoutMorph, MORPH_AT, SPIN_AT, type CheckoutMorphProps } from "./CheckoutMorph";
+import { BTN_H, CARD, CLICK_AT, CheckoutMorph, ENTER, MORPH, MORPH_AT, SPIN_AT, checkoutTimeline, type CheckoutMorphProps } from "./CheckoutMorph";
 
-const palettes = [
-  { name: "Coral", swatch: ["#F6F1EA", "#FF5A36", "#1FA971"], values: { background: "#F6F1EA", button: "#FF5A36", buttonText: "#FFFFFF", success: "#1FA971", text: "#1A1512" } },
-  { name: "Plum", swatch: ["#0F0A12", "#B04BFF", "#2ED18A"], values: { background: "#0F0A12", button: "#B04BFF", buttonText: "#FFFFFF", success: "#2ED18A", text: "#F4EEF8" } },
-  { name: "Lime", swatch: ["#0B0F0A", "#E2FF5C", "#2FD39A"], values: { background: "#0B0F0A", button: "#E2FF5C", buttonText: "#0B1206", success: "#2FD39A", text: "#EEF3EA" } },
-  { name: "Cobalt", swatch: ["#080B18", "#4F6BFF", "#22C55E"], values: { background: "#080B18", button: "#4F6BFF", buttonText: "#FFFFFF", success: "#22C55E", text: "#EEF0FA" } },
-  { name: "Ink", swatch: ["#F4F4F2", "#111113", "#16A34A"], values: { background: "#F4F4F2", button: "#111113", buttonText: "#FFFFFF", success: "#16A34A", text: "#111113" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  button: t.button,
+  onButton: t.onButton,
+  accent: t.accent,
+  success: t.success,
+  onSuccess: t.onAccent,
+}));
 
 export default defineMotion<CheckoutMorphProps>({
   slug: "checkout-morph",
@@ -17,12 +23,14 @@ export default defineMotion<CheckoutMorphProps>({
   category: "ui",
   tags: ["checkout", "payment", "button", "morph", "success"],
   addedAt: "2026-09-12",
-  durationInFrames: 170,
+  durationInFrames: 180,
   fps: 30,
   ratios: ["16:9", "9:16", "1:1"],
   component: CheckoutMorph,
   defaultProps: {
     ...palettes[0].values,
+    item: "Breeders Pro, annual",
+    price: "$49.00",
     label: "Pay $49",
     done: "Payment complete",
     detail: "Receipt sent to your inbox",
@@ -31,25 +39,29 @@ export default defineMotion<CheckoutMorphProps>({
   } as CheckoutMorphProps,
   palettes,
   controls: [
+    { type: "text", key: "item", label: "Item", maxLength: 32 },
+    { type: "text", key: "price", label: "Price", maxLength: 12 },
     { type: "text", key: "label", label: "Button", maxLength: 16 },
     { type: "text", key: "done", label: "Success line", maxLength: 28 },
     { type: "text", key: "detail", label: "Detail", maxLength: 40 },
-    { type: "color", key: "button", label: "Button" },
-    { type: "color", key: "success", label: "Success" },
     { type: "color", key: "background", label: "Background" },
     { type: "number", key: "spin", label: "Spinner time", min: 24, max: 48, step: 2, unit: "f" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
   prompt: (p, c) => {
-    const ok = SPIN_AT + p.spin;
+    const { ok, lineAt } = checkoutTimeline(p.spin);
     return [
-      targetLine(c.target, "a pay button that morphs into a spinner and then a success check", c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist. Centred column with a 64px gap; the whole thing rises 24px and fades in over 0.5s.`,
-      `Button: ${BTN.w}×${BTN.h} pill, vertical gradient of ${p.button} (88% → 100%), 1.5px inner top highlight, soft ${p.button} shadow (56px blur). Content: a lock icon and "${p.label}" at 44px weight 600, -0.03em, ${p.buttonText}.`,
-      `A black arrow cursor with a white outline glides in from the lower right and clicks at ${secs(CLICK_AT, c.fps)}: the button presses to 0.95 and back over 0.33s.`,
-      `At ${secs(MORPH_AT, c.fps)} the label fades and shrinks while the pill narrows to a ${BTN.h}px circle over 0.6s (ease ${p.ease} ${bezierText(p.ease)}). A 60px spinner fades in: 22px-radius ring at 25% ${p.buttonText} with a round-capped arc rotating 12°/frame.`,
-      `At ${secs(ok, c.fps)} the circle crossfades to ${p.success}, pops to 1.1× and back, the spinner fades, and a ${p.buttonText} check stroke draws on over 0.4s. A 3px ${p.success} ring expands to 1.9× and fades.`,
-      `Then "${p.done}" (52px, weight 650, -0.04em, ${p.text}) and "${p.detail}" (28px, 55%) rise 22px and fade in below. Hold to the end.`,
+      targetLine(c.target, "a checkout card whose pay button morphs into a spinner and then a success check", c.width, c.height, c.seconds),
+      `Background: flat ${p.background}, no gradient or glow. One accent, ${p.accent}, used only on the spinner arc; ${p.success} only for the success state.`,
+      `Type: Inter. Geist Mono label "ORDER SUMMARY" 18px, +0.12em, ${p.ink3}. Rows at 30px, -0.015em: "${p.item}" and "${p.price}" in ${p.ink2}; "Total" weight 500 and "${p.price}" weight 600 in ${p.ink}. Button label "${p.label}" 32px weight 500 in ${p.onButton}. Below the card, "${p.done}" 34px weight 500, -0.025em, ${p.ink} and "${p.detail}" 24px ${p.ink2}.`,
+      `Card: ${CARD.wide}px wide at 16:9 (${CARD.narrow} in 9:16 and 1:1), padding ${CARD.pad}, radius ${RADIUS.card}, fill ${p.card}, 1px ${p.line} border, shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06) (none on a dark canvas). A ${STROKE.hair}px ${p.line} divider sits between the item and total rows.`,
+      `Pay button: full card width, ${BTN_H}px tall, pill, flat ${p.button}, with a ${STROKE.ring}px lock icon. No gradient, highlight or coloured shadow.`,
+      `Motion: frames 0–${ENTER} the card fades in and rises 24px (${p.ease}, ${bezierText(p.ease)}).`,
+      `Frames 6–${CLICK_AT - 2}: a ${p.ink} arrow cursor with a ${p.card} outline glides in from the lower right (travel ${bezierText("travel")}). Frame ${CLICK_AT}: click; the button presses 1 → 0.97 → 1 over 10 frames.`,
+      `Frame ${MORPH_AT}: the label fades and shrinks to 0.9 over 12 frames (exit ${bezierText("exit")}) while the pill narrows to a ${BTN_H}px circle over ${MORPH} frames (${p.ease}). The cursor fades out over 12 frames (exit).`,
+      `Frame ${SPIN_AT}–${SPIN_AT + 18}: a 52px spinner fades in (enter ${bezierText("enter")}): 20px radius, ${STROKE.ring}px ${p.onButton} track at 25% and a ${p.accent} round-capped arc rotating 12°/frame (linear).`,
+      `Frame ${ok}: the circle crossfades to ${p.success} over 12 frames (travel) and pops 1 → 1.04 → 1; a ${STROKE.bar}px ${p.onSuccess} check draws on over 18 frames (enter); a ${STROKE.ring}px ${p.success} ring at 30% expands to 1.6× and fades.`,
+      `Frame ${lineAt}–${lineAt + 20}: the success lines fade in and rise 16px, 48px below the card, while the stack shifts up to stay centred (${p.ease}). Hold completely still to the end.`,
     ].join("\n");
   },
 });

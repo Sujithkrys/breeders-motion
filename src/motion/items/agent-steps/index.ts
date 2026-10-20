@@ -1,15 +1,18 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, RADIUS, STROKE, bezierText, secs, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { AgentSteps, FIRST_STEP, type AgentStepsProps } from "./AgentSteps";
+import { AgentSteps, CARD_W, ENTER, FIRST_STEP, ROW, stepsTimeline, type AgentStepsProps } from "./AgentSteps";
 
-const palettes = [
-  { name: "Amber", swatch: ["#0E0C09", "#FFB224", "#F6F1E7"], values: { background: "#0E0C09", surface: "#17140F", accent: "#FFB224", text: "#F6F1E7" } },
-  { name: "Mint", swatch: ["#08110F", "#3DDC97", "#EAF5F0"], values: { background: "#08110F", surface: "#0F1A17", accent: "#3DDC97", text: "#EAF5F0" } },
-  { name: "Orchid", swatch: ["#100A14", "#D16BFF", "#F3EEF7"], values: { background: "#100A14", surface: "#1A1220", accent: "#D16BFF", text: "#F3EEF7" } },
-  { name: "Paper", swatch: ["#F2EFE9", "#E8590C", "#1A1714"], values: { background: "#F2EFE9", surface: "#FFFFFF", accent: "#E8590C", text: "#1A1714" } },
-  { name: "Glacier", swatch: ["#EAF1F7", "#2F7BEA", "#0F1A2A"], values: { background: "#EAF1F7", surface: "#FFFFFF", accent: "#2F7BEA", text: "#0F1A2A" } },
-  { name: "Graphite", swatch: ["#0C0C0D", "#E7E7EA", "#5A5A62"], values: { background: "#0C0C0D", surface: "#161618", accent: "#E7E7EA", text: "#F4F4F5" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  fill: t.fill,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  accent: t.accent,
+  success: t.success,
+}));
 
 export default defineMotion<AgentStepsProps>({
   slug: "agent-steps",
@@ -48,17 +51,20 @@ export default defineMotion<AgentStepsProps>({
   ],
   prompt: (p, c) => {
     const S = p.stagger;
-    const allDone = FIRST_STEP + 4 * S - 6;
+    const { allDone, chipAt } = stepsTimeline(S);
     return [
       targetLine(c.target, "an AI agent task card that completes its steps one by one", c.width, c.height, c.seconds),
-      `Background ${p.background} with a soft ${p.accent} radial glow behind the card. Font Geist; mono labels in Geist Mono.`,
-      `Card: 940px wide (880 in 9:16 and 1:1), padding 48, radius 40, fill ${p.surface}, 1.5px border of ${p.text} at 7%, deep soft drop shadow. Rises 30px and scales 0.97 → 1 over the first 0.5s.`,
-      `Header: 68px ${p.accent} gradient icon square (radius 20), mono "AGENT TASK" label at 19px/0.14em, title "${p.task}" at 38px weight 600, -0.035em. Right: a ${p.accent} pill reading "Working" with a pulsing dot, which swaps to "Done" when all steps finish.`,
-      `Four 78px step rows below a hairline divider: "${p.step1}", "${p.step2}", "${p.step3}", "${p.step4}" at 30px weight 500.`,
-      `Step n fades and rises 18px at ${secs(FIRST_STEP, c.fps)} + n × ${secs(S, c.fps)}. While active it shows a 42px spinner (16px radius ring, ${p.accent} arc on a 12% track, rotating 14°/frame) and its label shimmers: dim at 42% with a bright copy revealed by a moving mask band.`,
-      `${secs(S - 6, c.fps)} after it starts, the spinner becomes a filled ${p.accent} check circle (scale 0.4 → 1, bouncy ${bezierText("spring")}), the check stroke draws on, the label settles at 90%, and a mono duration (1.4s, 2.1s, 0.9s, 3.2s) fades in on the right. A 2px connector line between icons fills with ${p.accent}.`,
-      `At ${secs(allDone + 4, c.fps)} a result chip arrives: ${p.accent} at 12% fill with a 35% border, radius 24, file icon, "${p.result}" at 27px, and an arrow. It rises 22px and scales 0.96 → 1.`,
-      `Ease ${p.ease} ${bezierText(p.ease)}. Hold the finished card to the end.`,
+      `Background: flat ${p.background}, no gradient or glow. One accent, ${p.accent}, used only on the active spinner arc and the "Working" dot; ${p.success} only for the "Done" dot.`,
+      `Type: Inter throughout. Title "${p.task}" 36px weight 500, -0.025em, ${p.ink}. Mono label "AGENT TASK" in Geist Mono 18px, +0.12em, ${p.ink3}. Step labels 30px weight 400: pending ${p.ink3}, done ${p.ink2}. Durations (1.4s, 2.1s, 0.9s, 3.2s) in Geist Mono 22px ${p.ink3}. Result "${p.result}" 26px weight 500.`,
+      `Card: ${CARD_W.wide}px wide at 16:9 (${CARD_W.narrow} in 9:16 and 1:1), padding 56 (48 narrow), radius ${RADIUS.card}, fill ${p.card}, 1px ${p.line} border, shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06) (none on a dark canvas).`,
+      `Header: 64px icon tile (radius ${RADIUS.button}, fill ${p.fill}, ${p.ink2} target icon), then the label and title, and on the right a 48px pill (fill ${p.fill}, 22px weight 500 ${p.ink2}) reading "Working" that crossfades to "Done". A ${STROKE.hair}px ${p.line} divider sits below.`,
+      `Four ${ROW}px rows: "${p.step1}", "${p.step2}", "${p.step3}", "${p.step4}". Icons are 44px: a spinner (17px radius, ${STROKE.ring}px ${p.line} track, ${p.accent} round-capped arc, rotating 12°/frame, linear) that becomes a filled ${p.ink} circle with a ${STROKE.ring}px ${p.card} check. A ${STROKE.hair}px ${p.line} connector between icons fills with ${p.ink3}.`,
+      `Result chip: radius ${RADIUS.button}, fill ${p.fill}, padding 20/24, ${p.ink2} file icon and ${p.ink3} arrow, all strokes ${STROKE.ring}px.`,
+      `Motion: frames 0–${ENTER} the card fades in and rises 24px (${p.ease}, ${bezierText(p.ease)}).`,
+      `Step n (0–3) fades in and rises 16px over 18 frames from frame ${FIRST_STEP} + n × ${S}. While active, its label shimmers: a ${p.ink} copy revealed by a moving mask band over the ${p.ink3} label.`,
+      `${S - 6} frames after it starts, the spinner turns into the check over 12 frames: travel ${bezierText("travel")} for the crossfade and check draw, ${bezierText("spring")} for the scale 0.6 → 1. The duration fades in, and the connector fills on travel.`,
+      `Frame ${allDone}: "Working" crossfades to "Done" over 12 frames (travel). Frame ${chipAt}–${chipAt + 20}: the result chip fades in and rises 16px (${p.ease}).`,
+      `Hold the finished card still to frame ${c.seconds * c.fps} (${secs(c.seconds * c.fps - chipAt - 20, c.fps)} of hold, at least the final 12 frames).`,
     ].join("\n");
   },
 });

@@ -1,14 +1,21 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, FINAL_HOLD, RADIUS, STROKE, bezierText, secs, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { T, UploadCard, extOf, type UploadCardProps } from "./UploadCard";
+import { ENTER, EXIT, T, UploadCard, cardWidth, extOf, zoomFor, type UploadCardProps } from "./UploadCard";
 
-const palettes = [
-  { name: "Peach", swatch: ["#FBEFE7", "#F2643D", "#16A34A"], values: { background: "#FBEFE7", card: "#FFFFFF", ink: "#24150E", accent: "#F2643D", success: "#16A34A" } },
-  { name: "Teal", swatch: ["#061211", "#2DD4BF", "#A3E635"], values: { background: "#061211", card: "#0F1F1D", ink: "#E8FFFB", accent: "#2DD4BF", success: "#A3E635" } },
-  { name: "Violet", swatch: ["#0D0A18", "#A78BFA", "#4ADE80"], values: { background: "#0D0A18", card: "#18142A", ink: "#F2EEFF", accent: "#A78BFA", success: "#4ADE80" } },
-  { name: "Amber", swatch: ["#120E06", "#F5A524", "#84CC16"], values: { background: "#120E06", card: "#1E1810", ink: "#FFF6E5", accent: "#F5A524", success: "#84CC16" } },
-  { name: "Graphite", swatch: ["#0B0B0C", "#A1A1AA", "#4ADE80"], values: { background: "#0B0B0C", card: "#18181B", ink: "#F4F4F5", accent: "#A1A1AA", success: "#4ADE80" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  fill: t.fill,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  accent: t.accent,
+  onAccent: t.onAccent,
+  success: t.success,
+}));
+
+const DURATION = 180;
 
 export default defineMotion<UploadCardProps>({
   slug: "upload-card",
@@ -17,7 +24,7 @@ export default defineMotion<UploadCardProps>({
   category: "ui",
   tags: ["upload", "file", "progress", "dropzone", "success"],
   addedAt: "2026-10-03",
-  durationInFrames: 195,
+  durationInFrames: DURATION,
   fps: 30,
   ratios: ["16:9", "1:1", "9:16"],
   component: UploadCard,
@@ -32,22 +39,25 @@ export default defineMotion<UploadCardProps>({
     { type: "text", key: "fileName", label: "File name", maxLength: 26 },
     { type: "number", key: "sizeMb", label: "File size", min: 2, max: 200, step: 0.1, unit: "MB" },
     { type: "color", key: "accent", label: "Accent" },
-    { type: "color", key: "success", label: "Success" },
     { type: "color", key: "background", label: "Background" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
-  prompt: (p, c) =>
-    [
-      targetLine(c.target, "a file upload card: drag into a drop zone, progress, done state", c.width, c.height, c.seconds),
-      `Background ${p.background}. Card ${p.card}, ${c.width < c.height ? 820 : 760}×620, radius 40, 40px padding, 1.5px ${p.ink} border at 8%, soft deep shadow. Font Geist; percentage in Geist Mono. Text ${p.ink}, secondary at 56%.`,
-      `Header: "Upload files" 34px weight 650 (-0.035em), "Add documents to the shared workspace" 21px, and a muted close X.`,
-      `Drop zone: 300px tall, radius 28, a 2px dashed SVG border (12/9 dash) and a faint ${p.accent} fill, with a ${p.accent} upload arrow in a tinted 68px tile, "Drop files here or browse" (browse in ${p.accent}) and "PDF, PNG or ZIP · up to 500 MB".`,
-      `File icon: a ${p.accent} document with a lighter folded corner and a white "${extOf(p.fileName)}" label, 120px wide.`,
-      "",
-      `${secs(T.drop, c.fps)}–${secs(T.land, c.fps)}: the icon drops from 460px above into the zone centre, untilting from −10° with a blurred shadow that tightens as it lands; the zone's border turns ${p.accent}, its tint deepens and its contents fade out. On landing it squashes 8% and springs back.`,
-      `${secs(T.travel, c.fps)}: the icon shrinks to 56px and flies into a 112px file row below the zone, which fades up 12px. The zone settles back to idle (${p.ease} ${bezierText(p.ease)}).`,
-      `${secs(T.upStart, c.fps)}–${secs(T.upEnd, c.fps)}: an 8px bar fills with a ${p.accent} gradient on a soft eased curve with a slight wobble. Status line: "X of ${Math.round(p.sizeMb * 10) / 10} MB · ~5.2 MB/s · Ns left" with live speed; "N%" on the right.`,
-      `${secs(T.done, c.fps)}: the bar turns ${p.success}, the status becomes "${Math.round(p.sizeMb * 10) / 10} MB · Uploaded just now" ("Uploaded" in ${p.success}), and the percentage swaps for a 48px ${p.success} check circle that pops in while its tick draws on. File name "${p.fileName}" at 25px weight 600 throughout.`,
-      `Hold the done state to ${c.seconds}s.`,
-    ].join("\n"),
+  prompt: (p, c) => {
+    const ratio = c.width === c.height ? "1:1" : c.width > c.height ? "16:9" : "9:16";
+    const k = zoomFor(ratio === "16:9");
+    const px = (n: number) => Math.round(n * k);
+    const size = Math.max(1, Math.round(p.sizeMb * 10) / 10);
+    return [
+      targetLine(c.target, "a file upload card: a file drops into a drop zone, uploads, and confirms", c.width, c.height, c.seconds),
+      `Background: flat ${p.background}. One card ${px(cardWidth(ratio))}×${px(620)}px: ${p.card} fill, 1px ${p.line} border, radius ${px(RADIUS.card)}, ${px(40)}px padding, shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06) (none on a dark canvas).`,
+      `Type: Inter, sentence case, hierarchy by grey. "Upload files" ${px(34)}px weight 500, -0.035em, ${p.ink}; "Add documents to the shared workspace" ${px(21)}px ${p.ink2}; "Drop files here or browse" ${px(25)}px ${p.ink2} with "browse" in ${p.ink} 500; "PDF, PNG or ZIP · up to 500 MB" ${px(19)}px ${p.ink3}. File name "${p.fileName}" ${px(25)}px 500; status ${px(19)}px ${p.ink2} tabular; percentage in Geist Mono ${px(22)}px 500.`,
+      `Geometry: drop zone ${px(300)}px tall, radius ${px(RADIUS.button)}, ${p.fill} fill, a ${STROKE.ring}px dashed SVG border (12/9) in ${p.ink} at 20%, with a ${px(68)}px ${p.card} upload tile (hairline ${p.line}, ${p.ink2} arrow). File row ${px(112)}px, radius ${px(RADIUS.button)}, ${STROKE.hair}px ${p.line} border; a ${STROKE.bar}px pill progress bar on a ${p.fill} track.`,
+      `File icon: a ${p.card} page with a ${STROKE.hair}px ${p.ink3} outline, a ${p.fill} folded corner and a small ${p.accent} chip reading "${extOf(p.fileName)}" in Geist Mono caps, ${p.onAccent}, +0.12em. ${p.accent} is the only accent; ${p.success} only marks the done state. No gradients or glows.`,
+      `Motion: frames 0–${ENTER} the card fades up 30px (${p.ease} ${bezierText(p.ease)}).`,
+      `Frames ${T.drop}–${T.land}: the icon drops 460px into the zone centre, untilting from −6° (travel ${bezierText("travel")}), with a soft contact shadow that tightens; the zone's dashes cross-fade to ${p.accent} with a 6% ${p.accent} tint and its contents fade out (exit, ${EXIT} frames). On landing it squashes 8% and recovers.`,
+      `Frames ${T.travel}–${T.travel + ENTER}: the icon shrinks to ${px(56)}px and flies into the file row (travel) as the row fades up 12px; the zone returns to idle.`,
+      `Frames ${T.upStart}–${T.upEnd} (${secs(T.upStart, c.fps)}–${secs(T.upEnd, c.fps)}): the bar fills in solid ${p.accent} (travel, slight wobble). Status "X of ${size} MB · ~5.2 MB/s · Ns left", live percentage on the right.`,
+      `Frames ${T.done}–${T.done + ENTER}: the bar turns ${p.success}, the status becomes "${size} MB · Uploaded just now", and the percentage swaps for a ${px(44)}px ${p.success} check circle that springs in while its tick draws on. Frames ${DURATION - FINAL_HOLD}–${DURATION}: completely still.`,
+    ].join("\n");
+  },
 });

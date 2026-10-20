@@ -1,12 +1,18 @@
 import React, { useMemo } from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { FONT_MONO, FONT_SANS, mix, progress, useLayout } from "../../kit";
+import { ACCENT, FONT_MONO, FONT_SANS, RADIUS, alpha, mix, progress, useLayout } from "../../kit";
 import type { Ratio } from "../../types";
 
 export type ContextWindowProps = {
   background: string;
   card: string;
+  line: string;
+  fill: string;
+  ink: string;
+  ink2: string;
+  ink3: string;
   accent: string;
+  success: string;
   model: string;
   total: number; // window size, in K tokens
   label1: string;
@@ -23,8 +29,6 @@ export type ContextWindowProps = {
   ease: string;
 };
 
-export const SAVED_GREEN = "#14A34A";
-export const SPARK = "#FF5A1F";
 export const HOVER_ROW = 2; // the row the cursor inspects (Files)
 export const COMPACT_ROW = 3; // the row that owns the Compact button (Conversation)
 
@@ -39,31 +43,30 @@ const hexRgb = (hex: string): [number, number, number] => {
 export const mixHex = (a: string, b: string, t: number) => {
   const A = hexRgb(a);
   const B = hexRgb(b);
-  return `#${A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, "0")).join("")}`;
+  return `#${A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, "0")).join("")}`.toUpperCase();
 };
 const isDarkHex = (hex: string) => {
   const [r, g, b] = hexRgb(hex);
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.45;
 };
 
-// Every colour the card uses, derived from canvas, card and accent so each palette stays one coherent look.
-export const themeFor = (background: string, card: string, accent: string) => {
-  const dark = isDarkHex(card);
-  const ink = dark ? "#F3F3F4" : "#111214";
-  const sub = dark ? "#8A8D96" : "#7B7E87";
+// Every colour the card uses, straight from the system tokens in props. Categories are greys plus one accent and its tint.
+export const themeFor = (p: Pick<ContextWindowProps, "background" | "card" | "line" | "fill" | "ink" | "ink2" | "ink3" | "accent" | "success">) => {
+  const dark = isDarkHex(p.background);
   return {
     dark,
-    ink,
-    sub,
-    tray: dark ? mixHex(card, "#FFFFFF", 0.035) : mixHex(background, ink, 0.04),
-    trayRing: dark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
-    cardRing: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
-    pill: mixHex(card, ink, dark ? 0.06 : 0.045),
-    tagBg: mixHex(card, ink, dark ? 0.07 : 0.05),
-    empty: mixHex(card, ink, dark ? 0.08 : 0.065),
-    cats: [mixHex(card, ink, 0.94), mixHex(card, ink, 0.5), mixHex(card, ink, 0.3), accent, mixHex(card, accent, dark ? 0.5 : 0.4)],
-    shadow: dark ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.06)",
-    shadowNear: dark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.04)",
+    ink: p.ink,
+    sub: p.ink2,
+    tray: p.fill,
+    ring: p.line,
+    pill: p.fill,
+    tagBg: p.fill,
+    empty: p.line,
+    btnHover: p.line,
+    cats: [p.ink, p.ink2, p.ink3, p.accent, mixHex(p.card, p.accent, dark ? 0.5 : 0.4)],
+    // The model-tag asterisk is grey unless the accent is the orange one, where it reads as the brand mark.
+    spark: p.accent.toUpperCase() === ACCENT.orange.toUpperCase() ? p.accent : p.ink3,
+    saved: p.success,
   };
 };
 
@@ -78,11 +81,14 @@ export const geometry = (ratio: Ratio, u: number) => {
   const c = CFG[ratio];
   const k = c.k * u;
   const W = c.w * u;
-  const inset = 4 * k;
-  const pad = 18 * k;
+  // Tray radius 32 and card radius 16 stay concentric with a 16px inset.
+  const trayR = RADIUS.card * u;
+  const cardR = RADIUS.button * u;
+  const inset = trayR - cardR;
+  const pad = 14 * k;
   const x0 = inset + pad;
   const CW = W - 2 * x0;
-  const titleTop = inset + 16 * k;
+  const titleTop = inset + 15 * k;
   const titleH = 22 * k;
   const numTop = titleTop + titleH + 13 * k;
   const numH = 36 * k;
@@ -91,29 +97,31 @@ export const geometry = (ratio: Ratio, u: number) => {
   const cols = Math.max(12, Math.round((CW + gap) / (12.2 * k)));
   const pitch = (CW + gap) / cols;
   const dot = pitch - gap;
+  const dotR = Math.min(RADIUS.chip * u, dot / 2);
   const gridH = c.rows * pitch - gap;
   const rowsTop = gridTop + gridH + 14 * k;
   const rowH = c.rowPitch * k;
   const cardBottom = rowsTop + 5 * rowH + 6 * k;
   const footerH = 52 * k;
-  return { k, W, H: cardBottom + footerH, inset, x0, CW, titleTop, titleH, numTop, numH, gridTop, gap, cols, rows: c.rows, pitch, dot, gridH, rowsTop, rowH, cardBottom, footerH };
+  return { k, W, H: cardBottom + footerH, trayR, cardR, inset, x0, CW, titleTop, titleH, numTop, numH, gridTop, gap, cols, rows: c.rows, pitch, dot, dotR, gridH, rowsTop, rowH, cardBottom, footerH };
 };
 
-// ---------- timeline (frames at a 180-frame loop) ----------
+// ---------- timeline (frames at a 180-frame loop; the last 12 are still and match frame 0) ----------
 export const T = {
-  fillA: 4, fillB: 48,
-  mv1A: 38, mv1B: 58,
-  hovA: 54, hovB: 62, hovOutA: 84, hovOutB: 92,
-  mv2A: 84, mv2B: 102,
-  btnA: 98, btnB: 104, btnOutA: 134, btnOutB: 142,
-  click1: 106,
-  spinA: 107, spinB: 111,
-  colA: 110, colB: 132,
-  doneA: 130, doneB: 137,
-  mv3A: 144, mv3B: 157,
-  click2: 160,
-  resetA: 161, resetB: 173,
-  mv4A: 164, mv4B: 180,
+  fillA: 4, fillB: 44,
+  mv1A: 34, mv1B: 54,
+  hovA: 50, hovB: 58, hovOutA: 78, hovOutB: 86,
+  mv2A: 78, mv2B: 96,
+  btnA: 92, btnB: 98, btnOutA: 138, btnOutB: 150,
+  click1: 100,
+  spinA: 101, spinB: 105,
+  colA: 104, colB: 126,
+  doneA: 124, doneB: 131,
+  mv3A: 138, mv3B: 150,
+  click2: 152,
+  resetA: 153, resetB: 167,
+  doneOut: 12,
+  mv4A: 155, mv4B: 168,
 } as const;
 const RAMP = 5; // dots of soft lead at the fill front
 
@@ -183,13 +191,14 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
   const { durationInFrames, u, ratio } = useLayout();
   const g = geometry(ratio, u);
   const { k } = g;
-  const th = themeFor(p.background, p.card, p.accent);
+  const th = themeFor(p);
   const { total, vals, saved } = normalise(p);
   const labels = [p.label1, p.label2, p.label3, p.label4, p.label5];
 
   const s = durationInFrames / 180;
   const at = (f: number) => f * s;
-  const seg = (a: number, b: number) => progress(frame, at(a), at(b), p.ease);
+  // State changes use the chosen ease; the cursor travels; the reset leaves on the exit curve.
+  const seg = (a: number, b: number, ease: string = p.ease) => progress(frame, at(a), at(b), ease);
   const bump = (c: number) => interpolate(frame, [at(c) - 3, at(c), at(c) + 4], [0, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   // dot budget
@@ -202,23 +211,22 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
 
   // state
   const collapse = Math.min(1, seg(T.colA, T.colB));
-  const F = frame < at(T.resetA) ? Math.min(1, seg(T.fillA, T.fillB)) * (usedBefore + RAMP) : (1 - Math.min(1, seg(T.resetA, T.resetB))) * (usedAfter + RAMP);
+  const F = frame < at(T.resetA) ? Math.min(1, seg(T.fillA, T.fillB)) * (usedBefore + RAMP) : (1 - Math.min(1, seg(T.resetA, T.resetB, "exit"))) * (usedAfter + RAMP);
   const h = Math.max(0, seg(T.hovA, T.hovB) - seg(T.hovOutA, T.hovOutB));
   const btnHover = Math.max(0, seg(T.btnA, T.btnB) - seg(T.btnOutA, T.btnOutB));
   const wSpin = clamp01(seg(T.spinA, T.spinB) - seg(T.doneA, T.doneB));
-  const wDone = clamp01(seg(T.doneA, T.doneB) - seg(T.resetA, T.resetA + 8));
+  const wDone = clamp01(seg(T.doneA, T.doneB) - seg(T.resetA, T.resetA + T.doneOut, "exit"));
   const press1 = bump(T.click1);
   const press2 = bump(T.click2);
 
   // dots → one path per category
   const cx = (i: number) => (i % g.cols) * g.pitch + g.dot / 2;
   const cy = (i: number) => Math.floor(i / g.cols) * g.pitch + g.dot / 2;
-  const dotR = g.dot * 0.26;
   const emptyPath = useMemo(() => {
     let d = "";
-    for (let i = 0; i < N; i++) d += sq((i % g.cols) * g.pitch + g.dot / 2, Math.floor(i / g.cols) * g.pitch + g.dot / 2, g.dot, g.dot * 0.26);
+    for (let i = 0; i < N; i++) d += sq((i % g.cols) * g.pitch + g.dot / 2, Math.floor(i / g.cols) * g.pitch + g.dot / 2, g.dot, g.dotR);
     return d;
-  }, [N, g.cols, g.pitch, g.dot]);
+  }, [N, g.cols, g.pitch, g.dot, g.dotR]);
 
   const paths = ["", "", "", "", ""];
   const tokens = [0, 0, 0, 0, 0];
@@ -234,7 +242,7 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
       const part = q === whole - 1 ? Math.min(1, len - q) : 1;
       const grow = clamp01((F - i) / RAMP);
       const sc = part * (1 - Math.pow(1 - grow, 3));
-      paths[j] += sq(cx(i), cy(i), g.dot * sc, dotR * sc);
+      paths[j] += sq(cx(i), cy(i), g.dot * sc, g.dotR * sc);
     }
     idx += whole;
   }
@@ -247,17 +255,18 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
   const P0: Pt = [g.W - 34 * k, g.H + 26 * k];
   const Pfiles: Pt = [g.x0 + 62 * k, g.rowsTop + (HOVER_ROW + 0.5) * g.rowH + 2 * k];
   const Pcomp: Pt = [btnRight - 40 * k, g.rowsTop + (COMPACT_ROW + 0.5) * g.rowH + 2 * k];
-  const Pnew: Pt = [g.W - 58 * k, g.cardBottom + g.footerH / 2 + 2 * k];
+  const Pnew: Pt = [g.x0 + g.CW - 40 * k, g.cardBottom + g.footerH / 2 + 2 * k];
   let cur: Pt = P0;
-  if (frame >= at(T.mv4A)) cur = glide(Pnew, P0, seg(T.mv4A, T.mv4B));
-  else if (frame >= at(T.mv3A)) cur = glide(Pcomp, Pnew, seg(T.mv3A, T.mv3B));
-  else if (frame >= at(T.mv2A)) cur = glide(Pfiles, Pcomp, seg(T.mv2A, T.mv2B));
-  else if (frame >= at(T.mv1A)) cur = glide(P0, Pfiles, seg(T.mv1A, T.mv1B));
+  if (frame >= at(T.mv4A)) cur = glide(Pnew, P0, seg(T.mv4A, T.mv4B, "travel"));
+  else if (frame >= at(T.mv3A)) cur = glide(Pcomp, Pnew, seg(T.mv3A, T.mv3B, "travel"));
+  else if (frame >= at(T.mv2A)) cur = glide(Pfiles, Pcomp, seg(T.mv2A, T.mv2B, "travel"));
+  else if (frame >= at(T.mv1A)) cur = glide(P0, Pfiles, seg(T.mv1A, T.mv1B, "travel"));
 
   const hair = Math.max(1, u);
   const blur = 5 * k;
   const tnum: React.CSSProperties = { fontVariantNumeric: "tabular-nums" };
   const abs = (left: number, top: number, width: number, height: number): React.CSSProperties => ({ position: "absolute", left, top, width, height });
+  const lift = th.dark ? "" : `, 0 ${u}px ${2 * u}px ${alpha(p.ink, 0.04)}, 0 ${8 * u}px ${24 * u}px ${alpha(p.ink, 0.06)}`;
 
   // footer states
   const wHover = h;
@@ -270,27 +279,20 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
           position: "relative",
           width: g.W,
           height: g.H,
-          borderRadius: 17 * k,
+          borderRadius: g.trayR,
           background: th.tray,
-          boxShadow: `0 0 0 ${hair}px ${th.trayRing}, 0 ${k}px ${2 * k}px ${th.shadowNear}, 0 ${8 * k}px ${24 * k}px ${th.shadow}`,
+          boxShadow: `0 0 0 ${hair}px ${th.ring}${lift}`,
           color: th.ink,
         }}
       >
         {/* inner card */}
-        <div
-          style={{
-            ...abs(g.inset, g.inset, g.W - 2 * g.inset, g.cardBottom - g.inset),
-            borderRadius: 13 * k,
-            background: p.card,
-            boxShadow: `0 0 0 ${hair}px ${th.cardRing}, 0 ${k}px ${2.5 * k}px ${th.shadowNear}`,
-          }}
-        />
+        <div style={{ ...abs(g.inset, g.inset, g.W - 2 * g.inset, g.cardBottom - g.inset), borderRadius: g.cardR, background: p.card, boxShadow: `0 0 0 ${hair}px ${th.ring}` }} />
 
         {/* header */}
         <div style={{ ...abs(g.x0, g.titleTop, g.CW, g.titleH), display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 16.5 * k, fontWeight: 500, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>Context window</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 * k, height: 23 * k, padding: `0 ${8 * k}px`, borderRadius: 6 * k, background: th.tagBg, fontFamily: FONT_MONO, fontSize: 12.5 * k, color: th.sub, whiteSpace: "nowrap" }}>
-            <Icon size={11 * k} color={SPARK} d={D_SPARK} sw={1.5} />
+          <span style={{ display: "flex", alignItems: "center", gap: 6 * k, height: 23 * k, padding: `0 ${8 * k}px`, borderRadius: RADIUS.chip * u, background: th.tagBg, fontFamily: FONT_MONO, fontSize: 12.5 * k, color: th.sub, whiteSpace: "nowrap" }}>
+            <Icon size={11 * k} color={th.spark} d={D_SPARK} sw={1.5} />
             {p.model}
           </span>
         </div>
@@ -311,20 +313,20 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
         </svg>
 
         {/* rows */}
-        <div style={{ ...abs(g.x0 - 8 * k, g.rowsTop + HOVER_ROW * g.rowH + 3 * k, g.CW + 16 * k, g.rowH - 6 * k), borderRadius: 8 * k, background: th.pill, opacity: h }} />
-        <div style={{ ...abs(g.x0 - 8 * k, g.rowsTop + COMPACT_ROW * g.rowH + 3 * k, g.CW + 16 * k, g.rowH - 6 * k), borderRadius: 8 * k, background: th.pill, opacity: btnHover * 0.7 }} />
+        <div style={{ ...abs(g.x0 - 8 * k, g.rowsTop + HOVER_ROW * g.rowH + 3 * k, g.CW + 16 * k, g.rowH - 6 * k), borderRadius: RADIUS.button * u, background: th.pill, opacity: h }} />
+        <div style={{ ...abs(g.x0 - 8 * k, g.rowsTop + COMPACT_ROW * g.rowH + 3 * k, g.CW + 16 * k, g.rowH - 6 * k), borderRadius: RADIUS.button * u, background: th.pill, opacity: btnHover * 0.7 }} />
         {labels.map((label, r) => {
           const active = r === HOVER_ROW;
           const textCol = active ? th.ink : mixHex(th.ink, th.sub, h);
           return (
             <div key={r} style={{ ...abs(g.x0, g.rowsTop + r * g.rowH, g.CW, g.rowH), display: "flex", alignItems: "center", fontSize: 15.5 * k, color: textCol, whiteSpace: "nowrap" }}>
-              <span style={{ width: 8.5 * k, height: 8.5 * k, borderRadius: 2.2 * k, background: th.cats[r], opacity: active ? 1 : mix(1, 0.3, h), marginRight: 9 * k, flexShrink: 0 }} />
+              <span style={{ width: 8.5 * k, height: 8.5 * k, borderRadius: 999, background: th.cats[r], opacity: active ? 1 : mix(1, 0.3, h), marginRight: 9 * k, flexShrink: 0 }} />
               <span>{label}</span>
               {r === HOVER_ROW ? <Icon size={12 * k} color={th.sub} d={D_CHEVRON} sw={1.3} style={{ marginLeft: 4 * k }} /> : null}
               <span style={{ flex: 1 }} />
               {r === COMPACT_ROW ? (
                 <span style={{ position: "relative", display: "flex", alignItems: "center", height: 25 * k, padding: `0 ${7 * k}px`, marginRight: 8 * k, fontSize: 13.5 * k, color: th.sub, transform: `scale(${1 - 0.05 * press1})` }}>
-                  <span style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, borderRadius: 6 * k, background: mixHex(p.card, th.ink, th.dark ? 0.1 : 0.075), opacity: btnHover }} />
+                  <span style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0, borderRadius: RADIUS.chip * u, background: th.btnHover, opacity: btnHover }} />
                   <span style={{ position: "relative" }}>
                     <Swap
                       align="end"
@@ -342,7 +344,7 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
                             </span>
                           ),
                         },
-                        { w: wDone, node: <span style={{ display: "flex", alignItems: "center", gap: 5 * k, color: SAVED_GREEN }}><Icon size={11 * k} color="currentColor" d={D_CHECK} sw={1.5} />Compacted</span> },
+                        { w: wDone, node: <span style={{ display: "flex", alignItems: "center", gap: 5 * k, color: th.saved }}><Icon size={11 * k} color="currentColor" d={D_CHECK} sw={1.5} />Compacted</span> },
                       ]}
                     />
                   </span>
@@ -354,14 +356,14 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
         })}
 
         {/* footer */}
-        <div style={{ ...abs(18 * k, g.cardBottom, g.W - 36 * k, g.footerH), display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 14.5 * k, whiteSpace: "nowrap" }}>
+        <div style={{ ...abs(g.x0, g.cardBottom, g.CW, g.footerH), display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 14.5 * k, whiteSpace: "nowrap" }}>
           <Swap
             blur={blur}
             layers={[
               { w: wLeft, node: <span style={{ color: th.sub }}>{fmtShort(total - used)} left</span> },
               { w: wHover, node: <span><span style={{ color: th.ink, fontWeight: 500 }}>{labels[HOVER_ROW]}</span><span style={{ color: th.sub }}> · {fmtPct((vals[HOVER_ROW] / total) * 100)} of the window</span></span> },
               { w: wSpin, node: <span style={{ color: th.sub }}>Compacting…</span> },
-              { w: wDone, node: <span style={{ color: SAVED_GREEN }}>Saved {fmtShort(saved)} tokens</span> },
+              { w: wDone, node: <span style={{ color: th.saved }}>Saved {fmtShort(saved)} tokens</span> },
             ]}
           />
           <span style={{ display: "flex", alignItems: "center", gap: 5 * k, fontWeight: 500, color: th.ink, opacity: 1 - 0.35 * press2 }}>
@@ -377,7 +379,7 @@ export const ContextWindow: React.FC<ContextWindowProps> = (p) => {
           viewBox="0 0 16 22"
           style={{ position: "absolute", left: cur[0] - 0.95 * k, top: cur[1] - 0.95 * k, overflow: "visible", transformOrigin: "0 0", transform: `scale(${1 - 0.12 * Math.max(press1, press2)})` }}
         >
-          <path d="M1 1V17.4L5.1 13.6 7.9 20.2 10.7 19 7.9 12.5H13.6Z" fill={th.dark ? "#FFFFFF" : "#111214"} stroke={th.dark ? "#111214" : "#FFFFFF"} strokeWidth={1.3} strokeLinejoin="round" />
+          <path d="M1 1V17.4L5.1 13.6 7.9 20.2 10.7 19 7.9 12.5H13.6Z" fill={th.ink} stroke={p.card} strokeWidth={1.3} strokeLinejoin="round" />
         </svg>
       </div>
     </AbsoluteFill>

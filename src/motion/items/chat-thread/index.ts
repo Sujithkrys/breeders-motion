@@ -1,14 +1,19 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, RADIUS, STROKE, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { ChatThread, chatBeats, type ChatThreadProps } from "./ChatThread";
+import { BUBBLE_IN, CHAT_W, ChatThread, ENTER, chatBeats, type ChatThreadProps } from "./ChatThread";
 
-const palettes = [
-  { name: "Teal", swatch: ["#071312", "#19C3A6", "#15221F"], values: { background: "#071312", surface: "#15221F", accent: "#19C3A6", accentText: "#04120F", text: "#E8F3F0" } },
-  { name: "Berry", swatch: ["#12080E", "#F0468C", "#241520"], values: { background: "#12080E", surface: "#241520", accent: "#F0468C", accentText: "#FFFFFF", text: "#F7EAF1" } },
-  { name: "Sand", swatch: ["#F3EEE6", "#E2711D", "#FFFFFF"], values: { background: "#F3EEE6", surface: "#FFFFFF", accent: "#E2711D", accentText: "#FFFFFF", text: "#1E1914" } },
-  { name: "Iris", swatch: ["#ECEEF8", "#5B5BF0", "#FFFFFF"], values: { background: "#ECEEF8", surface: "#FFFFFF", accent: "#5B5BF0", accentText: "#FFFFFF", text: "#161833" } },
-  { name: "Graphite", swatch: ["#0C0C0E", "#F1F1F3", "#1C1C20"], values: { background: "#0C0C0E", surface: "#1C1C20", accent: "#F1F1F3", accentText: "#0C0C0E", text: "#F1F1F3" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  fill: t.fill,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  button: t.button,
+  onButton: t.onButton,
+  accent: t.accent,
+}));
 
 export default defineMotion<ChatThreadProps>({
   slug: "chat-thread",
@@ -38,7 +43,7 @@ export default defineMotion<ChatThreadProps>({
     { type: "text", key: "msg2", label: "Message 2 (reply)", maxLength: 70 },
     { type: "text", key: "msg3", label: "Message 3 (sent)", maxLength: 70 },
     { type: "text", key: "msg4", label: "Message 4 (reply)", maxLength: 70 },
-    { type: "color", key: "accent", label: "Sent bubble" },
+    { type: "color", key: "accent", label: "Accent" },
     { type: "color", key: "background", label: "Background" },
     { type: "number", key: "pace", label: "Pace", min: 16, max: 24, step: 1, unit: "f" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
@@ -46,13 +51,15 @@ export default defineMotion<ChatThreadProps>({
   prompt: (p, c) => {
     const b = chatBeats(p.pace);
     return [
-      targetLine(c.target, "a chat thread where bubbles arrive on alternating sides, with typing indicators before replies", c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist. One column, 900px wide (860 in 9:16 and 1:1), centred; lay out all bubbles from the start so nothing reflows, and only animate their appearance.`,
-      `Header: 72px ${p.accent} gradient avatar with the initial "${p.name.trim().charAt(0).toUpperCase()}", "${p.name}" at 32px weight 600 and "Active now" at 22px, 50%, with a ${p.accent} dot. 44px below it the messages start, 22px apart.`,
-      `Bubbles: 32px text, line-height 1.36, padding 22/32, max 74% wide, radius 34 with a 10px corner on the speaker's bottom side. Sent (right): ${p.accent} vertical gradient, text ${p.accentText}, soft ${p.accent} shadow. Received (left): ${p.surface}, text ${p.text}, soft shadow.`,
-      `Order: right "${p.msg1}" at ${secs(b[0].at, c.fps)}; left "${p.msg2}" at ${secs(b[1].at, c.fps)}; right "${p.msg3}" at ${secs(b[2].at, c.fps)}; left "${p.msg4}" at ${secs(b[3].at, c.fps)}.`,
-      `Each bubble rises 24px and scales 0.86 → 1 from its tail corner over 0.47s. Before each reply, at ${secs(b[1].typing, c.fps)} and ${secs(b[3].typing, c.fps)}, a 76px-tall ${p.surface} typing bubble scales in with three 14px dots bouncing 6px in a wave; it fades out as the reply lands in its place.`,
-      `Ease ${p.ease} ${bezierText(p.ease)}. Hold the full thread to the end.`,
+      targetLine(c.target, "a chat window where bubbles arrive on alternating sides, with typing indicators before replies", c.width, c.height, c.seconds),
+      `Background: flat ${p.background}, no gradient or glow. One accent, ${p.accent}, used only on the 10px "Active now" dot.`,
+      `Type: Inter. Messages 30px weight 400, line-height 1.36, -0.012em. Contact "${p.name}" 30px weight 500, -0.02em, ${p.ink}; "Active now" 22px ${p.ink2}. A centred Geist Mono label "TODAY 9:41" at 18px, +0.12em, ${p.ink3}.`,
+      `Window card: ${CHAT_W.wide}px wide at 16:9 (${CHAT_W.narrow} in 9:16 and 1:1), padding 36/40/44, radius ${RADIUS.card}, fill ${p.card}, 1px ${p.line} border, shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06) (none on a dark canvas). Header: a 64px ${p.fill} avatar with the initial "${p.name.trim().charAt(0).toUpperCase()}" in ${p.ink2} weight 500, then a ${STROKE.hair}px ${p.line} divider.`,
+      `Bubbles: padding 20/30, max 72% wide, radius ${RADIUS.card} with a ${RADIUS.chip}px corner on the speaker's bottom side, 20px apart, no shadows. Sent (right): ${p.button} with ${p.onButton} text. Received (left): ${p.fill} with ${p.ink} text. Lay out every bubble from the start so nothing reflows; only animate their appearance.`,
+      `Motion: frames 0–${ENTER} the card fades in and rises 24px (${p.ease}, ${bezierText(p.ease)}).`,
+      `Bubbles land at frames ${b[0].at} (right, "${p.msg1}"), ${b[1].at} (left, "${p.msg2}"), ${b[2].at} (right, "${p.msg3}") and ${b[3].at} (left, "${p.msg4}"). Each fades in, rises 12px and scales 0.9 → 1 from its tail corner over ${BUBBLE_IN} frames (${p.ease}).`,
+      `Typing indicator before each reply, from frames ${b[1].typing} and ${b[3].typing}: an 80px-tall ${p.fill} bubble scales 0.9 → 1 and fades in over 18 frames (${p.ease}), with three 12px ${p.ink3} dots bouncing 5px in a wave. It fades out on exit ${bezierText("exit")} over 12 frames as the reply lands in its place.`,
+      `The last bubble settles by frame ${b[3].at + BUBBLE_IN}; hold the full thread completely still to the end.`,
     ].join("\n");
   },
 });

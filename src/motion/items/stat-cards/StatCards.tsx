@@ -1,16 +1,17 @@
 import React, { useId } from "react";
 import { AbsoluteFill, random, useCurrentFrame } from "remotion";
-import { FONT_MONO, FONT_SANS, alpha, progress, useLayout } from "../../kit";
+import { FONT_MONO, FONT_SANS, RADIUS, STAGGER, STROKE, alpha, progress, useLayout } from "../../kit";
 
 export type StatCardsProps = {
   background: string;
   card: string;
-  border: string;
+  line: string;
   ink: string;
-  muted: string;
+  ink2: string;
+  ink3: string;
   accent: string;
-  pos: string;
-  neg: string;
+  success: string;
+  error: string;
   title: string;
   labels: string;
   values: string;
@@ -48,6 +49,14 @@ const fmt = (n: number, d = 0) => {
   return (n < 0 ? "-" : "") + int.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + (frac ? `.${frac}` : "");
 };
 
+// Dark canvases get no surface shadow (the system's rule for Ink).
+const isDark = (hex: string) => {
+  const h = hex.replace("#", "");
+  const v = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h.slice(0, 6), 16);
+  if (!Number.isFinite(v)) return false;
+  return 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255) < 128;
+};
+
 // A deterministic random walk that trends the same way as the card's delta.
 const sparkPoints = (i: number, delta: number, w: number, h: number) => {
   const N = 14;
@@ -69,6 +78,10 @@ const Arrow: React.FC<{ up: boolean; size: number; color: string }> = ({ up, siz
   </svg>
 );
 
+// Per-card timing, shared with the prompt.
+export const CARD_START = 12;
+export const RISE = 24;
+
 export const StatCards: React.FC<StatCardsProps> = (p) => {
   const frame = useCurrentFrame();
   const { width, height, u, ratio, isVertical } = useLayout();
@@ -76,39 +89,42 @@ export const StatCards: React.FC<StatCardsProps> = (p) => {
   const cards = parseCards(p.labels, p.values, p.deltas);
   const wide = ratio === "16:9";
 
-  const pad = (wide ? 120 : isVertical ? 90 : 80) * u;
-  const gap = (wide ? 36 : 28) * u;
-  const headerH = (wide ? 120 : isVertical ? 140 : 100) * u;
-  const headerGap = (wide ? 64 : 48) * u;
+  const pad = (wide ? 220 : isVertical ? 90 : 80) * u;
+  const gap = (wide ? 32 : 28) * u;
+  const headerH = (wide ? 110 : isVertical ? 140 : 100) * u;
+  const headerGap = (wide ? 56 : 48) * u;
   const cardW = wide ? (width - pad * 2 - gap * 2) / 3 : width - pad * 2;
-  const cardH = (wide ? 460 : isVertical ? 320 : 238) * u;
+  const cardH = (wide ? 400 : isVertical ? 320 : 238) * u;
   const blockH = headerH + headerGap + (wide ? cardH : cardH * 3 + gap * 2);
   const top = (height - blockH) / 2;
   const cardTop = top + headerH + headerGap;
   const head = progress(frame, 0, 22, "enter");
-  const st = p.stagger;
+  const st = Math.max(1, p.stagger || STAGGER);
   const mono: React.CSSProperties = { fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums" };
+  const shadow = isDark(p.background) ? "none" : `0 ${1 * u}px ${2 * u}px ${alpha(p.ink, 0.04)}, 0 ${8 * u}px ${24 * u}px ${alpha(p.ink, 0.06)}`;
 
-  const valueSize = (wide ? 84 : isVertical ? 88 : 64) * u;
-  const cardPad = (wide ? 44 : isVertical ? 48 : 36) * u;
+  const valueSize = (wide ? 76 : isVertical ? 80 : 60) * u;
+  const cardPad = (wide ? 40 : isVertical ? 44 : 34) * u;
   const sparkW = wide ? cardW - cardPad * 2 : cardW * 0.4;
-  const sparkH = (wide ? 120 : isVertical ? 150 : 110) * u;
+  const sparkH = (wide ? 112 : isVertical ? 140 : 104) * u;
 
   return (
     <AbsoluteFill style={{ background: p.background, fontFamily: FONT_SANS, color: p.ink }}>
-      <div style={{ position: "absolute", left: pad, right: pad, top, height: headerH, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 12 * u, opacity: head, transform: `translateY(${(1 - head) * 24 * u}px)` }}>
-        <span style={{ ...mono, fontSize: 20 * u, letterSpacing: "0.14em", textTransform: "uppercase", color: p.muted }}>Key metrics</span>
-        <span style={{ fontSize: (wide ? 64 : 56) * u, fontWeight: 650, letterSpacing: "-0.04em", lineHeight: 1.02, whiteSpace: "nowrap", overflow: "hidden" }}>{p.title}</span>
+      <div style={{ position: "absolute", left: pad, right: pad, top, height: headerH, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 14 * u, opacity: head, transform: `translateY(${(1 - head) * 24 * u}px)` }}>
+        <span style={{ ...mono, fontSize: 18 * u, letterSpacing: "0.12em", textTransform: "uppercase", color: p.ink3 }}>Key metrics</span>
+        <span style={{ fontSize: 44 * u, fontWeight: 500, letterSpacing: "-0.035em", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden" }}>{p.title}</span>
       </div>
 
       {cards.map((c, i) => {
-        const s0 = 12 + i * st;
-        const rise = progress(frame, s0, s0 + 26, p.ease);
+        const s0 = CARD_START + i * st;
+        const rise = progress(frame, s0, s0 + RISE, p.ease);
         const count = progress(frame, s0 + 6, s0 + 50, "enter");
-        const chip = progress(frame, s0 + 34, s0 + 48, "enter");
+        const chip = progress(frame, s0 + 30, s0 + 50, "enter");
         const draw = progress(frame, s0 + 12, s0 + 58, "travel");
         const up = c.delta >= 0;
-        const dc = up ? p.pos : p.neg;
+        const dc = up ? p.success : p.error;
+        // Grey sparklines; the accent is reserved for the hero (first) card.
+        const sc = i === 0 ? p.accent : p.ink3;
         const x = wide ? pad + i * (cardW + gap) : pad;
         const y = wide ? cardTop : cardTop + i * (cardH + gap);
 
@@ -126,7 +142,7 @@ export const StatCards: React.FC<StatCardsProps> = (p) => {
           rem -= segLens[k];
           tip = pts[k + 1];
         }
-        const line = pts.map((pt, k) => `${k === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
+        const path = pts.map((pt, k) => `${k === 0 ? "M" : "L"} ${pt.x} ${pt.y}`).join(" ");
 
         const chipEl = (
           <span
@@ -135,19 +151,18 @@ export const StatCards: React.FC<StatCardsProps> = (p) => {
               display: "flex",
               alignItems: "center",
               gap: 6 * u,
-              fontSize: 22 * u,
-              fontWeight: 600,
+              fontSize: 18 * u,
+              fontWeight: 500,
               color: dc,
-              background: alpha(dc, 0.14),
-              padding: `${7 * u}px ${14 * u}px ${7 * u}px ${10 * u}px`,
-              borderRadius: 999,
+              background: alpha(dc, 0.12),
+              padding: `${6 * u}px ${10 * u}px ${6 * u}px ${8 * u}px`,
+              borderRadius: RADIUS.chip * u,
               opacity: chip,
-              transform: `scale(${0.85 + 0.15 * chip})`,
-              transformOrigin: "left center",
+              transform: `translateY(${(1 - chip) * 8 * u}px)`,
               alignSelf: "flex-start",
             }}
           >
-            <Arrow up={up} size={16 * u} color={dc} />
+            <Arrow up={up} size={14 * u} color={dc} />
             {up ? "+" : "−"}
             {fmt(Math.abs(c.delta), Math.abs(c.delta) % 1 === 0 ? 0 : 1)}%
           </span>
@@ -156,17 +171,22 @@ export const StatCards: React.FC<StatCardsProps> = (p) => {
         const spark = (
           <svg width={sparkW} height={sparkH + 12 * u} viewBox={`0 ${-6 * u} ${sparkW} ${sparkH + 12 * u}`} style={{ overflow: "visible", flexShrink: 0 }}>
             <defs>
-              <linearGradient id={`${id}-a${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor={p.accent} stopOpacity={0.28} />
-                <stop offset="1" stopColor={p.accent} stopOpacity={0} />
-              </linearGradient>
               <clipPath id={`${id}-c${i}`}>
                 <rect x={-10 * u} y={-20 * u} width={tip.x + 10 * u} height={sparkH + 40 * u} />
               </clipPath>
             </defs>
-            <path d={`${line} L ${sparkW} ${sparkH} L 0 ${sparkH} Z`} fill={`url(#${id}-a${i})`} clipPath={`url(#${id}-c${i})`} opacity={draw} />
-            <path d={line} fill="none" stroke={p.accent} strokeWidth={3.5 * u} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${len + 1} ${len + 1}`} strokeDashoffset={(len + 1) * (1 - draw)} />
-            <circle cx={tip.x} cy={tip.y} r={6.5 * u} fill={p.accent} stroke={p.card} strokeWidth={3 * u} opacity={draw > 0 ? 1 : 0} />
+            <path d={`${path} L ${sparkW} ${sparkH} L 0 ${sparkH} Z`} fill={sc} fillOpacity={0.08} clipPath={`url(#${id}-c${i})`} opacity={draw} />
+            <path
+              d={path}
+              fill="none"
+              stroke={sc}
+              strokeWidth={STROKE.ring * u}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={`${len + 1} ${len + 1}`}
+              strokeDashoffset={(len + 1) * (1 - draw)}
+            />
+            <circle cx={tip.x} cy={tip.y} r={5 * u} fill={sc} stroke={p.card} strokeWidth={STROKE.ring * u} opacity={draw > 0 ? 1 : 0} />
           </svg>
         );
 
@@ -181,12 +201,12 @@ export const StatCards: React.FC<StatCardsProps> = (p) => {
               height: cardH,
               boxSizing: "border-box",
               padding: cardPad,
-              borderRadius: 30 * u,
+              borderRadius: RADIUS.card * u,
               background: p.card,
-              border: `${1.5 * u}px solid ${p.border}`,
-              boxShadow: `0 ${24 * u}px ${60 * u}px rgba(0,0,0,${0.22 * rise})`,
+              border: `${STROKE.hair * u}px solid ${p.line}`,
+              boxShadow: shadow,
               opacity: Math.min(1, rise * 1.4),
-              transform: `translateY(${(1 - rise) * 70 * u}px) scale(${0.96 + 0.04 * rise})`,
+              transform: `translateY(${(1 - rise) * 40 * u}px)`,
               display: "flex",
               flexDirection: wide ? "column" : "row",
               justifyContent: "space-between",
@@ -194,12 +214,12 @@ export const StatCards: React.FC<StatCardsProps> = (p) => {
               gap: 24 * u,
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: (wide ? 18 : 12) * u, minWidth: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: (wide ? 16 : 12) * u, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 * u }}>
-                <span style={{ fontSize: 28 * u, fontWeight: 500, color: p.muted, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>{c.label}</span>
+                <span style={{ fontSize: 26 * u, fontWeight: 500, color: p.ink2, letterSpacing: "-0.01em", whiteSpace: "nowrap" }}>{c.label}</span>
                 {wide && chipEl}
               </div>
-              <span style={{ fontSize: valueSize, fontWeight: 650, letterSpacing: "-0.045em", lineHeight: 1, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: valueSize, fontWeight: 500, letterSpacing: "-0.045em", lineHeight: 1, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
                 {c.stat.prefix}
                 {fmt(c.stat.n * count, c.stat.d)}
                 {c.stat.suffix}

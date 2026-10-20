@@ -1,23 +1,27 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, FINAL_HOLD, STROKE, bezierText, secs, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { FILL_AT, ProgressRing, RING, type ProgressRingProps } from "./ProgressRing";
+import { CAPTION_IN, ENTER, FILL_AT, ProgressRing, ringSize, type ProgressRingProps } from "./ProgressRing";
 
-const palettes = [
-  { name: "Magenta", swatch: ["#0F0811", "#FF5FA2", "#B03CFF"], values: { background: "#0F0811", gradA: "#FF5FA2", gradB: "#B03CFF", text: "#F8EEF7" } },
-  { name: "Citrus", swatch: ["#0E0C06", "#FFD23F", "#FF7A1A"], values: { background: "#0E0C06", gradA: "#FFD23F", gradB: "#FF7A1A", text: "#F7F2E4" } },
-  { name: "Mint", swatch: ["#EEF6F2", "#2FD3A0", "#138A72"], values: { background: "#EEF6F2", gradA: "#2FD3A0", gradB: "#138A72", text: "#10221C" } },
-  { name: "Ocean", swatch: ["#070C16", "#5EE7FF", "#3B6CFF"], values: { background: "#070C16", gradA: "#5EE7FF", gradB: "#3B6CFF", text: "#EAF1FB" } },
-  { name: "Blush", swatch: ["#F8EEEA", "#FF8A65", "#E5395B"], values: { background: "#F8EEEA", gradA: "#FF8A65", gradB: "#E5395B", text: "#2A1714" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  accent: t.accent,
+}));
+
+const DURATION = 150;
 
 export default defineMotion<ProgressRingProps>({
   slug: "progress-ring",
   name: "Progress Ring",
-  description: "A gradient progress ring sweeps to its target while the percentage counts up in the centre.",
+  description: "A flat progress ring sweeps to its target while the percentage counts up in the centre.",
   category: "ui",
   tags: ["progress", "ring", "counter", "stats", "gauge"],
   addedAt: "2026-10-06",
-  durationInFrames: 150,
+  durationInFrames: DURATION,
   fps: 30,
   ratios: ["1:1", "16:9", "9:16"],
   component: ProgressRing,
@@ -26,7 +30,6 @@ export default defineMotion<ProgressRingProps>({
     label: "Weekly goal",
     caption: "12% ahead of last week",
     target: 78,
-    thickness: 40,
     fillTime: 66,
     ease: "enter",
   } as ProgressRingProps,
@@ -35,23 +38,26 @@ export default defineMotion<ProgressRingProps>({
     { type: "text", key: "label", label: "Label", maxLength: 22 },
     { type: "text", key: "caption", label: "Caption", maxLength: 32 },
     { type: "number", key: "target", label: "Target", min: 5, max: 100, step: 1, unit: "%" },
-    { type: "color", key: "gradA", label: "Gradient start" },
-    { type: "color", key: "gradB", label: "Gradient end" },
+    { type: "color", key: "accent", label: "Accent" },
     { type: "color", key: "background", label: "Background" },
-    { type: "number", key: "thickness", label: "Thickness", min: 20, max: 56, step: 2, unit: "px" },
     { type: "number", key: "fillTime", label: "Fill time", min: 36, max: 100, step: 2, unit: "f" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
   prompt: (p, c) => {
-    const R = Math.round((RING - p.thickness) / 2 - 24);
+    const wide = c.width > c.height;
+    const ring = ringSize(wide);
+    const fillEnd = FILL_AT + p.fillTime;
+    const capFrom = fillEnd - 6;
     return [
-      targetLine(c.target, "a circular progress ring with a gradient stroke filling to a target while the number counts up", c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist. Centred column: a ${RING}px ring, then a caption pill 48px below. Everything fades in and scales 0.96 → 1 over 0.4s.`,
-      `Ring: SVG circle, radius ${R}, stroke ${p.thickness}px. Track in ${p.text} at 8%. Progress arc starts at 12 o'clock, round caps, stroke is a diagonal linear gradient ${p.gradA} → ${p.gradB}, drawn with strokeDasharray. Under it the same arc blurred (stdDeviation ${Math.round(p.thickness * 0.55)}) at 55% for a glow, and a small white dot (85%) riding the arc's head.`,
-      `From ${secs(FILL_AT, c.fps)} to ${secs(FILL_AT + p.fillTime, c.fps)} the arc fills 0 → ${p.target}% with ease ${p.ease} ${bezierText(p.ease)}.`,
-      `Centre: the rounded value counts up in sync at 168px weight 700, -0.05em, tabular figures, ${p.text}, followed by "%" at 68px weight 600 and 50%. Below it "${p.label}" at 30px weight 400, 55%.`,
-      `As the fill finishes, the caption pill rises 18px and fades in: 60px tall, radius 30, ${p.gradA} at 13% fill with a 30% border, a trend-up arrow in ${p.gradA} and "${p.caption}" at 26px weight 500.`,
-      "Hold the final state to the end.",
+      targetLine(c.target, "a flat progress ring that fills to a target while the number counts up", c.width, c.height, c.seconds),
+      `Background: flat ${p.background}, no gradient, glow or texture. ${wide ? "Ring on the left with the label and caption pill 104px to its right" : "Ring centred with the label and caption pill 52px below it"}.`,
+      `Type: Inter only. The value ${wide ? 200 : 176}px weight 600, -0.045em, tabular figures, ${p.ink}, then "%" at ${wide ? 72 : 64}px weight 400 in ${p.ink3}. "${p.label}" ${wide ? 56 : 46}px weight 400, -0.035em, ${p.ink}. Caption "${p.caption}" 25px weight 500 in ${p.ink2}. Sentence case, hierarchy by grey only.`,
+      `Geometry: a ${ring}px SVG ring with a ${STROKE.bar}px track in ${p.line} and a ${STROKE.bar}px arc in solid ${p.accent} with round caps, starting at 12 o'clock and drawn with strokeDasharray. No gradient, no blur, no glow, no head dot.`,
+      `Caption pill: 60px tall, fully rounded (999), ${p.card} fill with a ${STROKE.hair}px ${p.line} border, a trend-up line icon in ${p.accent} (${STROKE.ring}px stroke) before the text. ${p.accent} is the only colour in the frame.`,
+      `Motion: frames 0–${ENTER} everything fades in and scales 0.96 → 1 (enter ${bezierText("enter")}).`,
+      `Frames ${FILL_AT}–${fillEnd} (${secs(FILL_AT, c.fps)}–${secs(fillEnd, c.fps)}): the arc fills 0 → ${p.target}% and the number counts up in sync, ${p.ease} ${bezierText(p.ease)}.`,
+      `Frames ${capFrom}–${capFrom + CAPTION_IN}: the caption pill fades in and rises 16px (enter).`,
+      `Frames ${DURATION - FINAL_HOLD}–${DURATION}: hold the final state completely still.`,
     ].join("\n");
   },
 });

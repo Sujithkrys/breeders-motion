@@ -1,44 +1,25 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { LineChartDraw, parseLabels, parseValues, type LineChartDrawProps } from "./LineChartDraw";
+import { DRAW_START, LineChartDraw, niceDomain, parseLabels, parseValues, type LineChartDrawProps } from "./LineChartDraw";
 
-const palettes = [
-  {
-    name: "Mint",
-    swatch: ["#06120E", "#9BE15D", "#3EE6A8"],
-    values: { background: "#06120E", ink: "#EAFFF6", muted: "#7E9E92", grid: "#14271F", lineStart: "#9BE15D", line: "#3EE6A8", tooltip: "#EAFFF6", tooltipInk: "#06120E" },
-  },
-  {
-    name: "Sunset",
-    swatch: ["#160A0E", "#FFB547", "#FF4D6D"],
-    values: { background: "#160A0E", ink: "#FFF0EE", muted: "#A88C90", grid: "#2C1A1F", lineStart: "#FFB547", line: "#FF4D6D", tooltip: "#FFF0EE", tooltipInk: "#160A0E" },
-  },
-  {
-    name: "Daylight",
-    swatch: ["#F7F6F2", "#F7B32B", "#E8590C"],
-    values: { background: "#F7F6F2", ink: "#16181D", muted: "#7C7F87", grid: "#E3E1DA", lineStart: "#F7B32B", line: "#E8590C", tooltip: "#16181D", tooltipInk: "#FFFFFF" },
-  },
-  {
-    name: "Orchid",
-    swatch: ["#14081A", "#F472B6", "#D946EF"],
-    values: { background: "#14081A", ink: "#FCEEFF", muted: "#A48AAE", grid: "#2A1733", lineStart: "#F472B6", line: "#D946EF", tooltip: "#FCEEFF", tooltipInk: "#14081A" },
-  },
-  {
-    name: "Nightfall",
-    swatch: ["#0B0D1E", "#8B5CF6", "#60A5FA"],
-    values: { background: "#0B0D1E", ink: "#EEF0FF", muted: "#8D92B8", grid: "#1C2040", lineStart: "#8B5CF6", line: "#60A5FA", tooltip: "#EEF0FF", tooltipInk: "#0B0D1E" },
-  },
-  {
-    name: "Graphite",
-    swatch: ["#0E0E10", "#6B6B73", "#F5F5F6"],
-    values: { background: "#0E0E10", ink: "#F5F5F6", muted: "#8A8A92", grid: "#222226", lineStart: "#6B6B73", line: "#F5F5F6", tooltip: "#F5F5F6", tooltipInk: "#0E0E10" },
-  },
-];
+// One accent on the line, the tip dot and a faint flat area; the tooltip is the system's button colour.
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  line: t.line,
+  accent: t.accent,
+  tooltip: t.button,
+  tooltipInk: t.onButton,
+  success: t.success,
+  error: t.error,
+}));
 
 export default defineMotion<LineChartDrawProps>({
   slug: "line-chart-draw",
   name: "Line Chart Draw",
-  description: "A smooth line draws itself across the chart while a dot and tooltip ride the tip and an area fill fades in beneath.",
+  description: "A single accent line draws itself across a quiet grid while a dot and tooltip ride its tip.",
   category: "charts",
   tags: ["chart", "line", "tooltip", "data", "growth"],
   addedAt: "2026-10-08",
@@ -59,28 +40,32 @@ export default defineMotion<LineChartDrawProps>({
     { type: "text", key: "title", label: "Title", maxLength: 40 },
     { type: "text", key: "values", label: "Values (comma-separated)", maxLength: 100 },
     { type: "text", key: "labels", label: "Labels (comma-separated)", maxLength: 120 },
-    { type: "color", key: "line", label: "Line" },
+    { type: "color", key: "accent", label: "Line" },
     { type: "color", key: "background", label: "Background" },
     { type: "number", key: "draw", label: "Draw length", min: 35, max: 60, step: 5, unit: "%" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
   prompt: (p, c) => {
     const { values } = parseValues(p.values);
-    const labels = parseLabels(p.labels, values.length);
-    const drawFrames = (p.draw / 100) * c.seconds * c.fps;
+    const n = values.length;
+    const labels = parseLabels(p.labels, n);
+    const { lo, hi, step } = niceDomain(Math.min(...values), Math.max(...values));
+    const total = Math.round(c.seconds * c.fps);
+    const drawEnd = Math.round(DRAW_START + (p.draw / 100) * total);
+    const first = values[0];
+    const delta = first !== 0 ? Math.round(((values[n - 1] - first) / Math.abs(first)) * 100) : null;
     return [
-      targetLine(c.target, "a line chart that draws itself on with a value tooltip tracking its tip", c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist; numbers in Geist Mono with tabular figures. Text ${p.ink}, secondary ${p.muted}.`,
+      targetLine(c.target, "a report-style line chart whose single accent line draws itself on, with a tooltip riding its tip", c.width, c.height, c.seconds),
+      `Background: flat ${p.background}, no card, no gradient, no glow. Text ${p.ink}, secondary ${p.ink2}, labels ${p.ink3}, gridlines ${p.line}. The only colour is ${p.accent}, on the line, its tip dot and the area beneath.`,
+      `Type: Inter everywhere; Geist Mono with tabular figures only for axis labels and numbers. Title "${p.title}" 44px weight 500, -0.035em. The last value is 96px weight 600, -0.045em, ${p.ink}. Tiny labels are 18px mono capitals at +0.12em in ${p.ink3}. Weights are 400/500/600 only, in sentence case.`,
       `Data: ${labels.map((l, i) => `${l} ${values[i]}`).join(", ")}, parsed from comma-separated string props.`,
-      "",
-      `Header: mono uppercase range "${labels[0]} – ${labels[labels.length - 1]}" (20px, 0.14em) over the title "${p.title}" (68px, weight 650, -0.04em). Right side: the last value at 84px counting up, plus a ${p.line} pill with the first-to-last % change.`,
-      `Y axis on a nice 1/2/2.5/5 step with dashed 1.5px ${p.grid} gridlines (4/8 dash) and a solid baseline; mono 20px tick labels; x labels 22px.`,
-      `Line: monotone cubic through the points (no overshoot), 5px, round caps, horizontal gradient ${p.lineStart} → ${p.line}, with a 10px blurred ${p.line} glow copy at 45% beneath it.`,
-      `Draw it with strokeDasharray/strokeDashoffset from 0.5s over ${secs(drawFrames, c.fps)} (${p.draw}% of the duration), ease ${p.ease} ${bezierText(p.ease)}.`,
-      `A 10px ${p.line} dot with a 4px ${p.background} ring follows the tip using an arc-length lookup, with a dotted drop line to the baseline. Small hollow dots mark each data point once the tip passes it.`,
-      `Tooltip above the dot: 168×92 card, radius 18, ${p.tooltip} with ${p.tooltipInk} text, a rotated-square pointer, the nearest label in mono 18px and the live value at 34px.`,
-      `Area under the line: vertical gradient ${p.line} at 34% → 0, clipped to the tip's x and fading in behind it.`,
-      "After the line lands the dot emits a soft pulse ring every 1.5s; hold the finished chart.",
+      `Geometry at 16:9 (px at 1080 on the short side): 200px side margins, so the plot spans about 75% of the width. Header: "${labels[0]} – ${labels[n - 1]}" over the title on the left; on the right the last value${delta !== null ? `, beside a delta chip "${delta >= 0 ? "+" : "−"}${Math.abs(delta)}%" in ${delta >= 0 ? p.success : p.error} on a 12% tint of it, 18px mono, 8px radius` : ""}.`,
+      `The Y axis runs ${lo}–${hi} in steps of ${step}, with solid 1.5px gridlines in ${p.line} and a baseline in ${p.ink} at 20%. Tick and month labels are 18px mono in ${p.ink3}; the label under the tip turns ${p.ink} at weight 500.`,
+      `Line: a monotone cubic through the points (no overshoot), 2.5px ${p.accent}, round caps. Under it is a flat ${p.accent} fill at 8% opacity, clipped to the tip's x. There are no gradients and no glow.`,
+      `Tip: an 8px ${p.accent} dot with a 2.5px ${p.background} ring, and a dashed 1.5px drop line to the baseline in ${p.ink} at 25%. Tooltip 112px above it: 152×80, 16px radius, ${p.tooltip} with ${p.tooltipInk} text, a 14px rotated-square pointer, the nearest label in 15px mono capitals at 60%, and the live value at 30px weight 500.`,
+      `Motion at 30fps, ${total} frames. Frames 0–22: the header fades in and rises 24px, ease enter ${bezierText("enter")}. From frame 4, gridlines draw left to right over 24 frames, 3 frames apart.`,
+      `Frames ${DRAW_START}–${drawEnd}: the line draws on with strokeDasharray/strokeDashoffset, ease ${p.ease} ${bezierText(p.ease)}. An arc-length lookup keeps the dot, drop line and tooltip on the tip. The tooltip fades in and rises 12px over frames ${DRAW_START}–${DRAW_START + 18}, and the last value counts up over the same span as the draw. The delta chip fades in over frames ${drawEnd - 6}–${drawEnd + 14}.`,
+      `Everything settles by frame ${drawEnd + 14}; the last 12 frames are a completely still hold, with the tooltip resting on the last point.`,
     ].join("\n");
   },
 });

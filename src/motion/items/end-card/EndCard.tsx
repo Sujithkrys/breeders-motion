@@ -1,80 +1,78 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
-import { FONT_MONO, FONT_SANS, alpha, mix, progress, useLayout } from "../../kit";
+import { FONT_MONO, FONT_SANS, RADIUS, STAGGER, STROKE, mix, progress, useLayout } from "../../kit";
 
 export type EndCardProps = {
   background: string;
-  accent: string;
-  accentInk: string;
-  ink: string;
-  muted: string;
+  ink: string; // brand name
+  ink3: string; // URL
+  accent: string; // the mark
+  onAccent: string; // the monogram on the mark
+  button: string; // the CTA pill
+  onButton: string;
   monogram: string;
   name: string;
   url: string;
   cta: string;
-  stagger: number; // frames between elements
+  rise: number; // px the name, URL and button rise as they enter
   ease: string;
 };
 
-export const timeline = (D: number, stagger: number) => {
-  const start = (i: number) => D * 0.05 + i * stagger;
-  const dur = D * 0.24;
-  const lastEnd = start(3) + dur;
-  return { start, dur, sheen: [lastEnd + 2, lastEnd + 2 + D * 0.14] as const };
+// Shared with the prompt so it quotes the real frames and sizes.
+export const CARD = {
+  start: 6, // first element starts
+  enter: 22, // each element's entrance
+  gap: STAGGER, // between elements
+  nudge: [52, 72] as const, // the arrow's one nudge, after everything has landed
+  mark: { wide: 136, vertical: 168 },
+  name: { wide: 120, vertical: 116, weight: 500, tracking: -0.045 },
+  url: { wide: 30, vertical: 34 },
+  button: { h: 96, font: 32, padL: 44, padR: 36, icon: 30 },
+} as const;
+
+export const elementStart = (i: number) => CARD.start + i * CARD.gap;
+
+// Inter 500 at -0.045em ≈ 0.56em per character; Geist Mono ≈ 0.6em.
+export const sizesFor = (p: Pick<EndCardProps, "name" | "url">, width: number, height: number, u: number) => {
+  const vertical = height > width;
+  const safeW = width - 2 * (width > height ? 96 * u : width * 0.08);
+  return {
+    mark: (vertical ? CARD.mark.vertical : CARD.mark.wide) * u,
+    name: Math.min((vertical ? CARD.name.vertical : CARD.name.wide) * u, safeW / (Math.max(p.name.length, 3) * 0.58)),
+    url: Math.min((vertical ? CARD.url.vertical : CARD.url.wide) * u, safeW / (Math.max(p.url.length, 6) * 0.62)),
+  };
 };
 
 export const EndCard: React.FC<EndCardProps> = (p) => {
   const frame = useCurrentFrame();
-  const { durationInFrames: D, u, isVertical, width } = useLayout();
-  const id = React.useId().replace(/:/g, "");
-  const tl = timeline(D, p.stagger);
-  const k = (i: number) => progress(frame, tl.start(i), tl.start(i) + tl.dur, p.ease);
-  const fade = (i: number) => progress(frame, tl.start(i), tl.start(i) + tl.dur * 0.5, "travel");
-
-  const M = (isVertical ? 176 : 150) * u;
-  const nameFs = Math.min((isVertical ? 116 : 120) * u, (width * 0.86) / (Math.max(p.name.length, 3) * 0.6));
-  const urlFs = Math.min((isVertical ? 36 : 32) * u, (width * 0.8) / (Math.max(p.url.length, 6) * 0.62));
-  const k0 = k(0);
-  const k1 = k(1);
-  const k2 = k(2);
-  const k3 = k(3);
-  const sheen = progress(frame, tl.sheen[0], tl.sheen[1], "travel");
-  const nudge = Math.sin(Math.PI * progress(frame, tl.sheen[0] + 2, tl.sheen[1], "enter"));
-  const glowW = 1400 * u;
-
-  const blur = (t: number, px: number) => (t < 1 ? `blur(${(1 - t) * px * u}px)` : undefined);
+  const { u, width, height, isVertical } = useLayout();
+  const S = sizesFor(p, width, height, u);
+  const k = (i: number) => progress(frame, elementStart(i), elementStart(i) + CARD.enter, p.ease);
+  const [k0, k1, k2, k3] = [k(0), k(1), k(2), k(3)];
+  // one small arrow nudge (out and back) once the card has landed, finished well before the final hold
+  const nudge = Math.sin(Math.PI * progress(frame, CARD.nudge[0], CARD.nudge[1], "travel"));
+  const icon = CARD.button.icon;
 
   return (
     <AbsoluteFill style={{ background: p.background, alignItems: "center", justifyContent: "center", fontFamily: FONT_SANS }}>
-      <svg width={glowW} height={glowW} viewBox="-1 -1 2 2" style={{ position: "absolute", left: "50%", top: "50%", marginLeft: -glowW / 2, marginTop: -glowW / 2 - (isVertical ? 240 : 160) * u, opacity: fade(0) }}>
-        <defs>
-          <radialGradient id={`${id}-glow`}>
-            <stop offset="0%" stopColor={p.accent} stopOpacity={0.2} />
-            <stop offset="100%" stopColor={p.accent} stopOpacity={0} />
-          </radialGradient>
-        </defs>
-        <ellipse rx={1} ry={0.62} fill={`url(#${id}-glow)`} />
-      </svg>
-
-      <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+        {/* the mark: a flat accent tile with the monogram; it scales up from 0.88 and fades in */}
         <div
           style={{
-            width: M,
-            height: M,
-            borderRadius: M * 0.28,
-            background: `linear-gradient(140deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%, rgba(0,0,0,0.18)), ${p.accent}`,
-            boxShadow: `0 ${24 * u}px ${70 * u}px ${alpha(p.accent, 0.4)}, inset 0 0 0 ${1.5 * u}px rgba(255,255,255,0.18)`,
+            width: S.mark,
+            height: S.mark,
+            borderRadius: RADIUS.card * u,
+            background: p.accent,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: M * (p.monogram.length > 1 ? 0.4 : 0.52),
-            fontWeight: 700,
-            letterSpacing: "-0.045em",
+            fontSize: S.mark * (p.monogram.length > 1 ? 0.4 : 0.5),
+            fontWeight: 600,
+            letterSpacing: "-0.04em",
             lineHeight: 1,
-            color: p.accentInk,
-            opacity: fade(0),
-            transform: `translateY(${(1 - k0) * 40 * u}px) scale(${mix(0.6, 1, k0)}) rotate(${(1 - k0) * -12}deg)`,
-            filter: blur(k0, 10),
+            color: p.onAccent,
+            opacity: Math.min(1, k0),
+            transform: `scale(${mix(0.88, 1, k0).toFixed(4)})`,
           }}
         >
           {p.monogram}
@@ -82,16 +80,15 @@ export const EndCard: React.FC<EndCardProps> = (p) => {
 
         <div
           style={{
-            marginTop: (isVertical ? 56 : 46) * u,
-            fontSize: nameFs,
-            fontWeight: 650,
-            letterSpacing: "-0.04em",
+            marginTop: (isVertical ? 56 : 48) * u,
+            fontSize: S.name,
+            fontWeight: CARD.name.weight,
+            letterSpacing: `${CARD.name.tracking}em`,
             lineHeight: 1.1,
             whiteSpace: "nowrap",
             color: p.ink,
-            opacity: fade(1),
-            transform: `translateY(${(1 - k1) * 36 * u}px)`,
-            filter: blur(k1, 10),
+            opacity: Math.min(1, k1),
+            transform: `translateY(${((1 - k1) * p.rise * u).toFixed(2)}px)`,
           }}
         >
           {p.name}
@@ -99,14 +96,16 @@ export const EndCard: React.FC<EndCardProps> = (p) => {
 
         <div
           style={{
-            marginTop: 16 * u,
+            marginTop: 14 * u,
             fontFamily: FONT_MONO,
-            fontSize: urlFs,
+            fontSize: S.url,
+            fontWeight: 400,
             letterSpacing: "0.02em",
+            lineHeight: 1.2,
             whiteSpace: "nowrap",
-            color: p.muted,
-            opacity: fade(2),
-            transform: `translateY(${(1 - k2) * 24 * u}px)`,
+            color: p.ink3,
+            opacity: Math.min(1, k2),
+            transform: `translateY(${((1 - k2) * p.rise * u).toFixed(2)}px)`,
           }}
         >
           {p.url}
@@ -114,43 +113,37 @@ export const EndCard: React.FC<EndCardProps> = (p) => {
 
         <div
           style={{
-            position: "relative",
             marginTop: (isVertical ? 72 : 56) * u,
-            height: 100 * u,
-            padding: `0 ${40 * u}px 0 ${48 * u}px`,
-            borderRadius: 50 * u,
-            overflow: "hidden",
+            height: CARD.button.h * u,
+            padding: `0 ${CARD.button.padR * u}px 0 ${CARD.button.padL * u}px`,
+            borderRadius: 999,
             display: "flex",
             alignItems: "center",
-            gap: 18 * u,
-            background: p.accent,
-            color: p.accentInk,
-            fontSize: 34 * u,
-            fontWeight: 600,
+            gap: 14 * u,
+            background: p.button,
+            color: p.onButton,
+            fontSize: CARD.button.font * u,
+            fontWeight: 500,
             letterSpacing: "-0.01em",
             whiteSpace: "nowrap",
-            boxShadow: `0 ${18 * u}px ${50 * u}px ${alpha(p.accent, 0.35)}, inset 0 ${1.5 * u}px 0 rgba(255,255,255,0.25)`,
-            opacity: fade(3),
-            transform: `translateY(${(1 - k3) * 30 * u}px) scale(${mix(0.86, 1, k3)})`,
+            opacity: Math.min(1, k3),
+            transform: `translateY(${((1 - k3) * p.rise * u).toFixed(2)}px)`,
           }}
         >
-          {/* a single sheen sweep once everything has landed */}
-          {sheen > 0 && sheen < 1 ? (
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                bottom: 0,
-                left: 0,
-                width: 140 * u,
-                background: "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.4), rgba(255,255,255,0))",
-                transform: `translateX(${mix(-180, 900, sheen) * u}px) skewX(-20deg)`,
-              }}
-            />
-          ) : null}
-          <span style={{ position: "relative" }}>{p.cta}</span>
-          <svg width={34 * u} height={34 * u} viewBox="0 0 24 24" fill="none" stroke={p.accentInk} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ position: "relative", transform: `translateX(${nudge * 6 * u}px)` }}>
-            <path d="M5 12h14M13 6l6 6-6 6" />
+          <span>{p.cta}</span>
+          {/* viewBox in the icon's own px, so the stroke is exactly STROKE.ring × u */}
+          <svg
+            width={icon * u}
+            height={icon * u}
+            viewBox={`0 0 ${icon} ${icon}`}
+            fill="none"
+            stroke={p.onButton}
+            strokeWidth={STROKE.ring}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transform: `translateX(${(nudge * 6 * u).toFixed(2)}px)` }}
+          >
+            <path d={`M${icon * 0.2} ${icon / 2}H${icon * 0.8}M${icon * 0.55} ${icon * 0.25}L${icon * 0.8} ${icon / 2}L${icon * 0.55} ${icon * 0.75}`} />
           </svg>
         </div>
       </div>

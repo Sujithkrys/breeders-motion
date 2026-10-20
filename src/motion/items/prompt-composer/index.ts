@@ -1,19 +1,24 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, RADIUS, STAGGER, STROKE, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { PromptComposer, TYPE_AT, composerTimeline, type PromptComposerProps } from "./PromptComposer";
+import { BARS, COMPOSER_W, ENTER, PromptComposer, TYPE_AT, composerTimeline, type PromptComposerProps } from "./PromptComposer";
 
-const palettes = [
-  { name: "Lavender", swatch: ["#EEEBF5", "#7C4DFF", "#1B1726"], values: { background: "#EEEBF5", surface: "#FFFFFF", accent: "#7C4DFF", text: "#1B1726" } },
-  { name: "Tangerine", swatch: ["#110C08", "#FF8A3D", "#F7F0E8"], values: { background: "#110C08", surface: "#1B1510", accent: "#FF8A3D", text: "#F7F0E8" } },
-  { name: "Jade", swatch: ["#07110E", "#21C89A", "#E9F4F0"], values: { background: "#07110E", surface: "#0F1B17", accent: "#21C89A", text: "#E9F4F0" } },
-  { name: "Rose", swatch: ["#F7ECEE", "#E0336B", "#2A1419"], values: { background: "#F7ECEE", surface: "#FFFFFF", accent: "#E0336B", text: "#2A1419" } },
-  { name: "Night", swatch: ["#0A0E16", "#5EA8FF", "#EAF0FA"], values: { background: "#0A0E16", surface: "#121826", accent: "#5EA8FF", text: "#EAF0FA" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  fill: t.fill,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  button: t.button,
+  onButton: t.onButton,
+  accent: t.accent,
+}));
 
 export default defineMotion<PromptComposerProps>({
   slug: "prompt-composer",
   name: "Prompt Composer",
-  description: "An AI prompt box types out a request, its send button pulses and is pressed, and a shimmering response skeleton slides in below.",
+  description: "An AI prompt box types out a request, its send button is pressed, and a quiet response skeleton slides in below.",
   category: "ui",
   tags: ["ai", "prompt", "input", "typing", "chat"],
   addedAt: "2026-10-19",
@@ -41,16 +46,20 @@ export default defineMotion<PromptComposerProps>({
   ],
   prompt: (p, c) => {
     const { typeEnd, press, reply } = composerTimeline(p.prompt.length, p.speed, c.fps);
+    const end = Math.round(typeEnd);
     const cps = Math.round(p.prompt.length / Math.max((typeEnd - TYPE_AT) / c.fps, 0.1));
     return [
       targetLine(c.target, "an AI prompt composer that types a request, sends it, and shows a loading response", c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist. Composer 1120px wide (900 in 9:16 and 1:1), padding 36/36/28, radius 40, fill ${p.surface}, 1.5px border of ${p.text} at 9%, large soft shadow. It rises 28px and scales 0.97 → 1 over 0.5s.`,
-      `Text area: 36px, line-height 1.4, -0.015em, ${p.text}, two lines tall. Before typing it shows a ${p.accent} caret (3.5px wide, 1.15em) and the placeholder "${p.placeholder}" at 38%; the caret blinks every 0.5s when idle and stays solid while typing.`,
-      `From ${secs(TYPE_AT, c.fps)} to ${secs(typeEnd, c.fps)} type "${p.prompt}" at ${cps} characters per second (linear), caret following the last character.`,
-      `Toolbar: 64px round "+" button with a 14% border, a 64px ${p.accent}-tinted pill (12% fill) with a globe icon and "${p.mode}" at 24px, and on the right a 72px round send button. It turns ${p.accent} when typing starts, with an up-arrow in ${p.surface}.`,
-      `When typing ends the send button breathes (scale up to 1.06) while a 3px ${p.accent} ring expands to 1.7× and fades over 0.5s. At ${secs(press, c.fps)} it is pressed (scale 1 → 0.86 → 1 over 0.4s), the arrow becomes a rounded stop square, and the prompt text dims to 60%.`,
-      `At ${secs(reply, c.fps)} a response skeleton slides in 44px below, rising 20px, while the whole stack shifts up to stay centred: a 48px ${p.accent} gradient avatar that gently pulses, and four 22px bars (92%, 100%, 84%, 58% wide, 20px gap) in ${p.text} at 8%, staggered 4 frames. A 45%-wide ${p.accent} shimmer band at 35% sweeps across each bar, offset per bar so it reads diagonal.`,
-      `Ease ${p.ease} ${bezierText(p.ease)}. Hold the loading state to the end.`,
+      `Background: flat ${p.background}, no gradient or glow. One accent, ${p.accent}, used only on the caret and the small response dot.`,
+      `Type: Inter. Prompt text 36px weight 400, line-height 1.4, -0.015em, ${p.ink}; placeholder "${p.placeholder}" in ${p.ink3}. Mode chip "${p.mode}" 24px weight 500 ${p.ink2}.`,
+      `Composer card: ${COMPOSER_W.wide}px wide at 16:9 (${COMPOSER_W.narrow} in 9:16 and 1:1), padding 36/36/28, radius ${RADIUS.card}, fill ${p.card}, 1px ${p.line} border, shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06) (none on a dark canvas). Text area is two lines tall.`,
+      `Toolbar: a 64px round "+" button with a 1px ${p.line} border and ${STROKE.ring}px ${p.ink2} icon; a 64px pill chip (fill ${p.fill}) with a ${STROKE.hair}px globe icon; on the right a 72px round send button, ${p.fill} with a ${p.ink3} arrow, which crossfades to ${p.button} with a ${p.onButton} arrow when typing starts.`,
+      `Caret: ${STROKE.ring}px × 1.15em ${p.accent} pill. It blinks every 15 frames while idle and stays solid while typing.`,
+      `Motion: frames 0–${ENTER} the composer fades in and rises 24px (${p.ease}, ${bezierText(p.ease)}).`,
+      `Frames ${TYPE_AT}–${end}: type "${p.prompt}" at ${cps} characters per second (linear), caret following. The send button turns ${p.button} over frames ${TYPE_AT}–${TYPE_AT + 8} (travel ${bezierText("travel")}).`,
+      `Frames ${end}–${end + 16}: the send button breathes to 1.04 and back (travel). Frame ${press}: it presses 1 → 0.9 → 1 over 12 frames; the arrow crossfades to a 22px ${p.onButton} stop square (radius ${RADIUS.chip}) and the prompt text dims to 55% over 12 frames (travel).`,
+      `Frame ${reply}–${reply + 20}: a response skeleton fades in and rises 20px, 44px below the card, while the whole stack shifts up to stay centred (${p.ease}). It has a 48px ${p.fill} avatar with a 16px ${p.accent} dot that gently pulses, and four 22px pill bars (${BARS.join("%, ")}% wide, 20px gap) in ${p.line}, each growing from 60% width over 18 frames, ${STAGGER} frames apart.`,
+      `The bars breathe in opacity (50–100%) in a slow wave offset per bar; no shimmer gradients. Hold the loading state; only the bar wave and dot pulse keep moving through the final 12 frames.`,
     ].join("\n");
   },
 });

@@ -1,14 +1,18 @@
-import { EASE_OPTIONS, bezierText, secs, targetLine } from "../../kit";
+import { EASE_OPTIONS, RADIUS, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { LiquidToggle, OFF_AT, ON_AT, TRACK, type LiquidToggleProps } from "./LiquidToggle";
+import { CARD, LiquidToggle, OFF_AT, ON_AT, TRACK, type LiquidToggleProps } from "./LiquidToggle";
 
-const palettes = [
-  { name: "Lime", swatch: ["#0A0D08", "#B8F23A", "#23281F"], values: { background: "#0A0D08", trackOff: "#23281F", accent: "#B8F23A", knob: "#FFFFFF", text: "#F1F5EC" } },
-  { name: "Coral", swatch: ["#120B0A", "#FF6B4A", "#2A1F1D"], values: { background: "#120B0A", trackOff: "#2A1F1D", accent: "#FF6B4A", knob: "#FFFFFF", text: "#F8EEEC" } },
-  { name: "Violet", swatch: ["#0D0B14", "#8B6CFF", "#241F33"], values: { background: "#0D0B14", trackOff: "#241F33", accent: "#8B6CFF", knob: "#FFFFFF", text: "#EFEDF7" } },
-  { name: "Meadow", swatch: ["#F3EFE6", "#2BB673", "#DCD6C9"], values: { background: "#F3EFE6", trackOff: "#DCD6C9", accent: "#2BB673", knob: "#FFFFFF", text: "#1D1B16" } },
-  { name: "Sky", swatch: ["#E9F2FB", "#1E88F0", "#CBD8E6"], values: { background: "#E9F2FB", trackOff: "#CBD8E6", accent: "#1E88F0", knob: "#FFFFFF", text: "#0E1B2B" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  track: t.line,
+  knob: t.onAccent,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  accent: t.accent,
+}));
 
 export default defineMotion<LiquidToggleProps>({
   slug: "liquid-toggle",
@@ -44,14 +48,18 @@ export default defineMotion<LiquidToggleProps>({
   prompt: (p, c) => {
     const d = TRACK.h - TRACK.pad * 2;
     const travel = TRACK.w - TRACK.pad * 2 - d;
+    const total = c.seconds * c.fps;
     return [
-      targetLine(c.target, "a large toggle switch whose knob stretches like liquid as it travels", c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist. Everything centred in one column with a 76px gap.`,
-      `Track: ${TRACK.w}×${TRACK.h} pill, fill ${p.trackOff}, soft inset shadow. Knob: ${d}px ${p.knob} circle inset ${TRACK.pad}px, vertical gradient, soft drop shadow and a faint top highlight. It travels ${travel}px.`,
-      `Switch on at ${secs(ON_AT, c.fps)} and off at ${secs(OFF_AT, c.fps)}, each taking ${secs(p.travel, c.fps)}. The leading edge moves over the first ${100 - p.stretch}% of that time and the trailing edge over the last ${100 - p.stretch}%, so the knob stretches into a pill mid-travel (height squashes up to 20%), then snaps round again. Keep the knob inside the track; if it overshoots, let it squish against the end.`,
-      `Track fill: a ${p.accent} pill layer whose right edge follows the knob's right edge, faded in as the toggle turns on; a ${p.accent} glow (90px blur, 38%) grows under the track.`,
-      `Below: "${p.title}" at 60px weight 650, -0.04em, ${p.text}. Under it the state at 40px: "${p.offText}" in ${p.text} at 45% slides up and out while "${p.onText}" in ${p.accent} slides up into a 56px window, and back.`,
-      `Ease ${p.ease} ${bezierText(p.ease)}. Loop seamlessly: off → on → off.`,
+      targetLine(c.target, "a settings card with a large toggle whose knob stretches like liquid as it travels", c.width, c.height, c.seconds),
+      `Background: flat ${p.background}, no gradient or glow. One accent, ${p.accent}, used only for the track's on fill.`,
+      `Type: Inter. Title "${p.title}" 56px weight 400, -0.04em, line-height 1.1, ${p.ink}. Under it the state at 30px weight 400, -0.015em, in a 44px window: "${p.offText}" in ${p.ink3}, "${p.onText}" in ${p.ink2}.`,
+      `Card: ${CARD.wide}px wide at 16:9 with the text on the left and the toggle on the right; ${CARD.narrow}px wide in 9:16 and 1:1 with the toggle above centred text. Padding ${CARD.pad}, 56px gap, radius ${RADIUS.card}, fill ${p.card}, 1px ${p.line} border, shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06) (none on a dark canvas).`,
+      `Toggle: ${TRACK.w}×${TRACK.h} pill track in flat ${p.track}. Knob: ${d}px flat ${p.knob} circle inset ${TRACK.pad}px with a small drop shadow (0 1px 2px rgba(0,0,0,.08), 0 6px 16px rgba(0,0,0,.12); none on dark). It travels ${travel}px. No gradients, highlights or glows.`,
+      `Track fill: a flat ${p.accent} pill whose right edge follows the knob's right edge, fading in over the first 60% of the switch.`,
+      `Motion: the switch turns on at frame ${ON_AT} and off at frame ${OFF_AT}, each taking ${p.travel} frames (${p.ease}, ${bezierText(p.ease)}).`,
+      `Within a switch, the leading edge moves over the first ${100 - p.stretch}% of that time and the trailing edge over the last ${100 - p.stretch}%. The knob stretches into a pill mid-travel (height squashes up to 20%), then rounds again. Keep the knob inside the track; if it overshoots, it squishes against the end.`,
+      `The state label slides 28px up and crossfades with the switch progress.`,
+      `Frames ${OFF_AT + p.travel}–${total} hold completely still in the off state, so the loop ends exactly where it starts (off → on → off).`,
     ].join("\n");
   },
 });

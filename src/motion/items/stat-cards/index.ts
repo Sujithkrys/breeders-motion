@@ -1,39 +1,24 @@
-import { EASE_OPTIONS, bezierText, targetLine } from "../../kit";
+import { EASE_OPTIONS, STAGGER, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { StatCards, parseCards, type StatCardsProps } from "./StatCards";
+import { CARD_START, RISE, StatCards, parseCards, type StatCardsProps } from "./StatCards";
 
-const palettes = [
-  {
-    name: "Citrus",
-    swatch: ["#0D0E0B", "#16180F", "#C6F432"],
-    values: { background: "#0D0E0B", card: "#16180F", border: "#262A1C", ink: "#F4F7EC", muted: "#8E9581", accent: "#C6F432", pos: "#C6F432", neg: "#FF7A6B" },
-  },
-  {
-    name: "Linen",
-    swatch: ["#F3EFE7", "#FFFFFF", "#E4572E"],
-    values: { background: "#F3EFE7", card: "#FFFFFF", border: "#E6E0D4", ink: "#1A1814", muted: "#857E72", accent: "#E4572E", pos: "#12945C", neg: "#D9452B" },
-  },
-  {
-    name: "Abyss",
-    swatch: ["#04141A", "#0A2129", "#22D3EE"],
-    values: { background: "#04141A", card: "#0A2129", border: "#143540", ink: "#E6FBFF", muted: "#7FA2AB", accent: "#22D3EE", pos: "#34D399", neg: "#FB7185" },
-  },
-  {
-    name: "Rosewood",
-    swatch: ["#170914", "#22101D", "#FF4FA3"],
-    values: { background: "#170914", card: "#22101D", border: "#3A1C32", ink: "#FFEFF8", muted: "#B08AA2", accent: "#FF4FA3", pos: "#5EE6A0", neg: "#FF8A65" },
-  },
-  {
-    name: "Graphite",
-    swatch: ["#0E0E10", "#18181B", "#F5F5F6"],
-    values: { background: "#0E0E10", card: "#18181B", border: "#2A2A2F", ink: "#F5F5F6", muted: "#8A8A92", accent: "#F5F5F6", pos: "#4ADE80", neg: "#F87171" },
-  },
-];
+// White cards on the canvas; grey sparklines with the accent only on the hero card; state colours only on delta chips.
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  ink: t.ink,
+  ink2: t.ink2,
+  ink3: t.ink3,
+  accent: t.accent,
+  success: t.success,
+  error: t.error,
+}));
 
 export default defineMotion<StatCardsProps>({
   slug: "stat-cards",
   name: "Stat Cards",
-  description: "Three KPI cards rise in as their numbers count up, delta chips pop and sparklines draw on.",
+  description: "Three KPI cards rise in as their numbers count up, delta chips fade in and quiet sparklines draw on.",
   category: "charts",
   tags: ["kpi", "dashboard", "sparkline", "count-up", "metrics"],
   addedAt: "2026-10-18",
@@ -47,8 +32,8 @@ export default defineMotion<StatCardsProps>({
     labels: "Revenue,Active users,Retention",
     values: "$128.4k,48210,92.4%",
     deltas: "12,8.5,-2.1",
-    stagger: 8,
-    ease: "enter",
+    stagger: STAGGER,
+    ease: "spring",
   } as StatCardsProps,
   palettes,
   controls: [
@@ -56,25 +41,26 @@ export default defineMotion<StatCardsProps>({
     { type: "text", key: "values", label: "Values (3, comma-separated)", maxLength: 48 },
     { type: "text", key: "deltas", label: "Changes in % (3)", maxLength: 32 },
     { type: "text", key: "labels", label: "Labels (3)", maxLength: 60 },
+    { type: "color", key: "accent", label: "Hero sparkline" },
     { type: "color", key: "background", label: "Background" },
-    { type: "number", key: "stagger", label: "Stagger", min: 4, max: 14, step: 1, unit: "f" },
+    { type: "number", key: "stagger", label: "Stagger", min: 2, max: 6, step: 1, unit: "f" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
   prompt: (p, c) => {
     const cards = parseCards(p.labels, p.values, p.deltas);
+    const frames = Math.round(c.seconds * c.fps);
+    const lastStart = CARD_START + 2 * p.stagger;
     return [
-      targetLine(c.target, "three KPI cards that rise in with counting numbers, delta chips and sparklines", c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist; numbers in Geist Mono or tabular figures. Text ${p.ink}, labels ${p.muted}.`,
+      targetLine(c.target, "three KPI cards that rise in with counting numbers, delta chips and quiet sparklines", c.width, c.height, c.seconds),
+      `Background: flat ${p.background}. Cards are ${p.card} with a 1.5px ${p.line} border and a near-invisible shadow (0 1px 2px and 0 8px 24px of ${p.ink} at 4% and 6%; none on a dark canvas). There are no gradients and no glow.`,
+      `Type: Inter everywhere; Geist Mono with tabular figures only for chips and tiny labels. "KEY METRICS" is 18px mono capitals at +0.12em in ${p.ink3}, over the title "${p.title}" at 44px weight 500, -0.035em, ${p.ink}. Card labels are 26px weight 500 in ${p.ink2}. Values are 76px weight 500, -0.045em, ${p.ink}, with tabular figures. Weights are 400/500/600 only, in sentence case.`,
       `Cards: ${cards.map((k) => `"${k.label}" ${k.stat.prefix}${k.stat.n}${k.stat.suffix} (${k.delta >= 0 ? "+" : ""}${k.delta}%)`).join(", ")}. Parse values like "$128.4k" into prefix, number, decimals and suffix so the count-up keeps the format.`,
-      "",
-      `Header: mono uppercase "KEY METRICS" (20px, 0.14em) over the title "${p.title}" (64px, weight 650, -0.04em).`,
-      `At 16:9 the cards sit in a row, 536×460 each with 36px gaps; at 9:16 and 1:1 they stack as wide rows with the sparkline on the right. Card ${p.card}, 1.5px ${p.border} border, radius 30, padding 44, shadow 0 24px 60px rgba(0,0,0,0.22).`,
-      `Inside: label 28px weight 500, value 84px weight 650 (-0.045em), and a pill delta chip: triangle arrow + "+12%", ${p.pos} for gains and ${p.neg} for drops on a 14% tint of that colour.`,
-      `Sparkline: a 14-point deterministic random walk trending with the delta, 3.5px ${p.accent} stroke with round joins, a ${p.accent} 28% → 0 area fill and a 6.5px dot riding the tip.`,
-      "",
-      `Card i starts at 0.4s + i × ${p.stagger} frames: rises 70px and scales 0.96 → 1 over 0.87s with ease ${p.ease} ${bezierText(p.ease)}.`,
-      "Its number counts up from 0 over 1.5s starting 0.2s later, the sparkline draws on with strokeDashoffset from 0.4s over 1.5s, and the chip pops in at 1.1s.",
-      "Everything settles by 70% of the duration; hold the final state.",
+      `Geometry at 16:9 (px at 1080 on the short side): 220px side margins, three cards in a row with 32px gaps (about 77% of the width), 400px tall, 32px radius, 40px padding. At 9:16 and 1:1 they stack as wide rows with the sparkline on the right at 40% of the card width.`,
+      `Delta chip: a small triangle arrow and "+12%" in 18px mono, weight 500, ${p.success} for gains and ${p.error} for drops, on a 12% tint of that colour, 8px radius.`,
+      `Sparkline: a 14-point deterministic random walk trending with the delta, with a 2.5px stroke, round joins, a flat 8% fill beneath and a 5px dot riding the tip on a 2.5px ${p.card} ring. The first (hero) card's sparkline is ${p.accent}; the other two are ${p.ink3}.`,
+      `Motion at 30fps, ${frames} frames. Frames 0–22: the header fades in and rises 24px, ease enter ${bezierText("enter")}.`,
+      `Card i starts at frame ${CARD_START} + i × ${p.stagger}. It fades in and rises 40px over ${RISE} frames, ease ${p.ease} ${bezierText(p.ease)}. Its number counts up from frame +6 to +50 on enter. Its sparkline draws on with strokeDashoffset from +12 to +58 on travel ${bezierText("travel")}. Its chip fades in and rises 8px from +30 to +50.`,
+      `Everything settles by frame ${lastStart + 58}; the last 12 frames are a completely still hold.`,
     ].join("\n");
   },
 });

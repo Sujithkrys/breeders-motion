@@ -1,17 +1,22 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
-import { FONT_SANS, alpha, mix, progress, useLayout } from "../../kit";
+import { FONT_SANS, RADIUS, STAGGER, STROKE, alpha, mix, progress, useLayout } from "../../kit";
 
 export type PricingCardsProps = {
   background: string;
   card: string;
+  line: string;
+  fill: string;
   ink: string;
+  ink2: string;
+  ink3: string;
+  button: string;
+  onButton: string;
   accent: string;
-  accent2: string;
   onAccent: string;
   badge: string;
   discount: number; // % off when billed yearly
-  stagger: number; // frames between cards
+  rise: number; // px each card rises as it enters
   ease: string;
 };
 
@@ -21,7 +26,25 @@ export const PLANS = [
   { name: "Scale", blurb: "For organisations", price: 79, cta: "Contact sales", features: ["Everything in Pro", "SSO and audit log", "Dedicated manager"] },
 ];
 
+// Frames on the 150-frame clip. Everything has settled by frame 92 and holds the yearly state to the end.
+export const PT = {
+  toggle: [0, 18] as const, // the toggle fades in
+  card: 6, // first card starts rising; the others follow STAGGER frames apart
+  cardLen: 22,
+  badge: [26, 44] as const,
+  flip: [60, 78] as const, // the knob slides to Yearly
+  roll: 66, // digits start rolling (+STAGGER per card, +2 per digit)
+  rollLen: 18,
+  caption: 68,
+};
+
 export const yearlyPrice = (monthly: number, discount: number) => Math.max(1, Math.round(monthly * (1 - discount / 100)));
+
+export const isDark = (hex: string) => {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h.slice(0, 6), 16);
+  return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255 < 0.4;
+};
 
 // Odometer-style price: each changed digit rolls up inside its own clipped slot; a vanishing leading digit
 // also collapses its width so the number stays tight.
@@ -52,43 +75,53 @@ const Roll: React.FC<{ from: number; to: number; t: (j: number) => number }> = (
   );
 };
 
-const Check: React.FC<{ size: number; color: string }> = ({ size, color }) => (
+const Check: React.FC<{ size: number; u: number; fill: string; color: string }> = ({ size, u, fill, color }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}>
-    <circle cx={12} cy={12} r={12} fill={alpha(color, 0.16)} />
-    <path d="M7.5 12.3l3 3 6-6.3" fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx={12} cy={12} r={12} fill={fill} />
+    <path d="M7.5 12.3l3 3 6-6.3" fill="none" stroke={color} strokeWidth={(STROKE.ring * u * 24) / size} strokeLinecap="round" strokeLinejoin="round" />
   </svg>
+);
+
+// Two copies of a label stacked, so the active one can cross-fade from ink2 to ink.
+const Toned: React.FC<{ text: string; from: string; to: string; t: number }> = ({ text, from, to, t }) => (
+  <span style={{ display: "grid" }}>
+    <span style={{ gridArea: "1 / 1", color: from }}>{text}</span>
+    <span style={{ gridArea: "1 / 1", color: to, opacity: t }}>{text}</span>
+  </span>
 );
 
 export const PricingCards: React.FC<PricingCardsProps> = (p) => {
   const f = useCurrentFrame();
   const { u, ratio } = useLayout();
   const compact = ratio === "9:16";
-  const k = ratio === "16:9" ? u : 0.78 * u;
-  const toggleIn = progress(f, 0, 16, p.ease);
-  const flip = progress(f, 78, 92, p.ease);
-  const muted = alpha(p.ink, 0.56);
+  const k = ratio === "16:9" ? u : 0.74 * u;
+  const unit = compact ? u : k;
+  const toggleIn = progress(f, PT.toggle[0], PT.toggle[1], p.ease);
+  const flip = progress(f, PT.flip[0], PT.flip[1], "travel");
   const seg = 190 * u;
+  const shadow = isDark(p.background) ? "none" : `0 ${1 * u}px ${2 * u}px rgba(0,0,0,0.04), 0 ${8 * u}px ${24 * u}px rgba(0,0,0,0.06)`;
+  const rise = Math.max(0, Math.min(40, p.rise));
 
   const cards = PLANS.map((plan, i) => {
     const hot = i === 1;
-    const rise = progress(f, 8 + i * p.stagger, 34 + i * p.stagger, p.ease);
-    const badgeIn = progress(f, 24 + i * p.stagger, 38 + i * p.stagger, "spring");
-    const roll = (j: number) => progress(f, 84 + i * 4 + j * 2, 100 + i * 4 + j * 2, p.ease);
-    const capT = progress(f, 86 + i * 4, 100 + i * 4, p.ease);
+    const s = i * STAGGER;
+    const inT = progress(f, PT.card + s, PT.card + s + PT.cardLen, p.ease);
+    const badgeIn = progress(f, PT.badge[0], PT.badge[1], "spring");
+    const roll = (j: number) => progress(f, PT.roll + s + j * 2, PT.roll + s + j * 2 + PT.rollLen, "travel");
+    const capT = progress(f, PT.caption + s, PT.caption + s + PT.rollLen, "travel");
     const yearly = yearlyPrice(plan.price, p.discount);
     const save = (plan.price - yearly) * 12;
-    const unit = compact ? u : k;
     const price = (
       <div style={{ display: "flex", alignItems: "baseline", color: p.ink }}>
-        <span style={{ fontSize: 44 * unit, fontWeight: 600, letterSpacing: "-0.03em", marginRight: 4 * unit, opacity: 0.9 }}>$</span>
-        <span style={{ fontSize: 92 * unit, fontWeight: 650, letterSpacing: "-0.045em", lineHeight: 1.1 }}>
+        <span style={{ fontSize: 44 * unit, fontWeight: 400, letterSpacing: "-0.03em", marginRight: 4 * unit, color: p.ink2 }}>$</span>
+        <span style={{ fontSize: 92 * unit, fontWeight: 500, letterSpacing: "-0.045em", lineHeight: 1.1 }}>
           <Roll from={plan.price} to={yearly} t={roll} />
         </span>
-        <span style={{ fontSize: 24 * unit, color: muted, marginLeft: 8 * unit }}>/mo</span>
+        <span style={{ fontSize: 24 * unit, color: p.ink3, marginLeft: 8 * unit }}>/mo</span>
       </div>
     );
     const caption = (
-      <div style={{ position: "relative", height: 30 * unit, fontSize: 20 * unit, color: muted, whiteSpace: "nowrap" }}>
+      <div style={{ position: "relative", height: 30 * unit, fontSize: 20 * unit, color: p.ink3, whiteSpace: "nowrap" }}>
         <span style={{ position: "absolute", left: compact ? undefined : 0, right: compact ? 0 : undefined, top: 0, opacity: 1 - capT, transform: `translateY(${-capT * 10 * unit}px)` }}>Billed monthly</span>
         <span style={{ position: "absolute", left: compact ? undefined : 0, right: compact ? 0 : undefined, top: 0, opacity: capT, transform: `translateY(${(1 - capT) * 10 * unit}px)` }}>
           Billed yearly · save <span style={{ color: hot ? p.accent : p.ink, fontWeight: 500 }}>${save}</span>
@@ -96,20 +129,19 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
       </div>
     );
     const badge = hot ? (
-      <div style={{ position: "absolute", left: 0, right: 0, top: -21 * unit, display: "flex", justifyContent: "center", opacity: badgeIn, transform: `scale(${mix(0.7, 1, badgeIn)})` }}>
+      <div style={{ position: "absolute", left: 0, right: 0, top: -21 * unit, display: "flex", justifyContent: "center", opacity: badgeIn, transform: `scale(${mix(0.8, 1, badgeIn)})` }}>
         <span
           style={{
             height: 42 * unit,
             padding: `0 ${20 * unit}px`,
             display: "flex",
             alignItems: "center",
-            borderRadius: 21 * unit,
-            background: `linear-gradient(135deg, ${p.accent}, ${p.accent2})`,
+            borderRadius: 999,
+            background: p.accent,
             color: p.onAccent,
             fontSize: 20 * unit,
-            fontWeight: 600,
+            fontWeight: 500,
             letterSpacing: "-0.005em",
-            boxShadow: `0 ${8 * unit}px ${20 * unit}px ${alpha(p.accent, 0.35)}`,
           }}
         >
           {p.badge}
@@ -120,15 +152,15 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
       position: "relative",
       boxSizing: "border-box",
       background: p.card,
-      border: hot ? `${2 * u}px solid ${p.accent}` : `${1.5 * u}px solid ${alpha(p.ink, 0.09)}`,
-      boxShadow: hot ? `0 ${40 * unit}px ${90 * unit}px ${alpha(p.accent, 0.26)}` : `0 ${30 * unit}px ${60 * unit}px rgba(0,0,0,0.16)`,
-      opacity: rise,
+      border: hot ? `${STROKE.ring * u}px solid ${p.accent}` : `${1 * u}px solid ${p.line}`,
+      boxShadow: shadow,
+      opacity: inT,
       fontFamily: FONT_SANS,
     };
     const head = (
       <>
-        <div style={{ fontSize: 32 * unit, fontWeight: 600, letterSpacing: "-0.03em", color: p.ink }}>{plan.name}</div>
-        <div style={{ fontSize: 22 * unit, color: muted, marginTop: 6 * unit }}>{plan.blurb}</div>
+        <div style={{ fontSize: 32 * unit, fontWeight: 500, letterSpacing: "-0.02em", color: p.ink }}>{plan.name}</div>
+        <div style={{ fontSize: 22 * unit, color: p.ink2, marginTop: 6 * unit }}>{plan.blurb}</div>
       </>
     );
 
@@ -140,12 +172,12 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
             ...shell,
             width: 880 * u,
             height: 200 * u,
-            borderRadius: 32 * u,
+            borderRadius: RADIUS.card * u,
             padding: `0 ${44 * u}px`,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            transform: `translateY(${(1 - rise) * 90 * u}px) scale(${hot ? 1.03 : 1})`,
+            transform: `translateY(${(1 - inT) * rise * u}px) scale(${hot ? 1.03 : 1})`,
           }}
         >
           {badge}
@@ -164,9 +196,9 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
         style={{
           ...shell,
           width: 400 * k,
-          borderRadius: 32 * k,
+          borderRadius: RADIUS.card * k,
           padding: 40 * k,
-          transform: `translateY(${(1 - rise) * 90 * k}px) scale(${hot ? 1.04 : 1})`,
+          transform: `translateY(${(1 - inT) * rise * k}px) scale(${hot ? 1.03 : 1})`,
         }}
       >
         {badge}
@@ -177,26 +209,24 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
           style={{
             marginTop: 26 * k,
             height: 64 * k,
-            borderRadius: 16 * k,
+            borderRadius: RADIUS.button * k,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             fontSize: 22 * k,
-            fontWeight: 600,
+            fontWeight: 500,
             letterSpacing: "-0.01em",
-            boxSizing: "border-box",
-            background: hot ? `linear-gradient(135deg, ${p.accent}, ${p.accent2})` : alpha(p.ink, 0.06),
-            border: hot ? "none" : `${1.5 * u}px solid ${alpha(p.ink, 0.1)}`,
-            color: hot ? p.onAccent : p.ink,
+            background: hot ? p.button : p.fill,
+            color: hot ? p.onButton : p.ink,
           }}
         >
           {plan.cta}
         </div>
-        <div style={{ height: 1.5 * u, background: alpha(p.ink, 0.09), margin: `${28 * k}px 0` }} />
+        <div style={{ height: STROKE.hair * u, background: p.line, margin: `${28 * k}px 0` }} />
         <div style={{ display: "flex", flexDirection: "column", gap: 16 * k }}>
           {plan.features.map((feat) => (
-            <div key={feat} style={{ display: "flex", alignItems: "center", gap: 14 * k, fontSize: 21 * k, color: alpha(p.ink, 0.86) }}>
-              <Check size={28 * k} color={hot ? p.accent : p.ink} />
+            <div key={feat} style={{ display: "flex", alignItems: "center", gap: 14 * k, fontSize: 21 * k, color: p.ink2 }}>
+              <Check size={28 * k} u={u} fill={p.fill} color={hot ? p.accent : p.ink} />
               {feat}
             </div>
           ))}
@@ -213,9 +243,9 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
             position: "relative",
             display: "flex",
             padding: 6 * u,
-            borderRadius: 40 * u,
-            background: alpha(p.ink, 0.06),
-            border: `${1.5 * u}px solid ${alpha(p.ink, 0.08)}`,
+            borderRadius: 999,
+            background: p.fill,
+            border: `${1 * u}px solid ${p.line}`,
             opacity: toggleIn,
             transform: `translateY(${(1 - toggleIn) * 16 * u}px)`,
           }}
@@ -227,9 +257,9 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
               top: 6 * u,
               width: seg,
               height: 62 * u,
-              borderRadius: 34 * u,
+              borderRadius: 999,
               background: p.card,
-              boxShadow: `0 ${6 * u}px ${16 * u}px rgba(0,0,0,0.16), 0 0 0 ${1.5 * u}px ${alpha(p.ink, 0.06)}`,
+              boxShadow: shadow === "none" ? `0 0 0 ${1 * u}px ${p.line}` : shadow,
             }}
           />
           {["Monthly", "Yearly"].map((label, i) => (
@@ -246,13 +276,11 @@ export const PricingCards: React.FC<PricingCardsProps> = (p) => {
                 fontSize: 24 * u,
                 fontWeight: 500,
                 letterSpacing: "-0.01em",
-                color: p.ink,
-                opacity: i === 0 ? mix(1, 0.55, flip) : mix(0.55, 1, flip),
               }}
             >
-              {label}
+              <Toned text={label} from={p.ink2} to={p.ink} t={i === 0 ? 1 - flip : flip} />
               {i === 1 && (
-                <span style={{ fontSize: 17 * u, fontWeight: 600, padding: `${4 * u}px ${9 * u}px`, borderRadius: 10 * u, background: alpha(p.accent, 0.16), color: p.accent }}>
+                <span style={{ fontSize: 17 * u, fontWeight: 500, padding: `${4 * u}px ${9 * u}px`, borderRadius: RADIUS.chip * u, background: alpha(p.accent, 0.12), color: p.accent }}>
                   −{Math.round(p.discount)}%
                 </span>
               )}

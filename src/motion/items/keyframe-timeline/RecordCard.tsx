@@ -1,14 +1,31 @@
 // The linked preview: "Loop", the record-store app from our Figma Motion film, as one card inside a Figma frame.
 // v[r] is how far layer r is from its start state (0) to its designed state (1): Header, Sleeve, Vinyl, Tracks, Play.
+// The art is the accent plus greys: an accent sleeve, a black vinyl with a grey label, ink type on the card.
 import React from "react";
-import { FONT_MONO, FONT_SANS } from "../../kit";
+import { CANVAS, FONT_MONO, FONT_SANS, RADIUS, STROKE, alpha } from "../../kit";
 
 export type CardVariant = "tall" | "wide";
 
-const INK = "#0E0F12";
-const SUB = "#7B7E87";
-const LINE = "#E8E8EC";
-const SOFT = "#F2F2EF";
+// the colours the card needs, all from the system tokens
+export type CardTokens = {
+  bg: string;
+  card: string;
+  line: string;
+  fill: string;
+  ink: string;
+  ink2: string;
+  button: string;
+  onButton: string;
+  accent: string;
+  onAccent: string;
+  shadow: boolean;
+};
+
+// The vinyl is a physical object: always a black disc with a paper-grey label, on any canvas.
+const VINYL = CANVAS.ink.bg;
+const VINYL_LABEL = CANVAS.paper.fill;
+const VINYL_LABEL_INK = CANVAS.paper.ink2;
+
 const TRACKS: [string, string][] = [
   ["Low Tide", "3:42"],
   ["Glass Harbour", "4:05"],
@@ -26,7 +43,7 @@ type CardGeo = {
   play: number;
   tracks: { x: number; y: number; w: number; n: number };
 };
-const GEO: Record<CardVariant, CardGeo> = {
+export const CARD_GEO: Record<CardVariant, CardGeo> = {
   tall: {
     w: 456,
     h: 600,
@@ -51,106 +68,119 @@ const GEO: Record<CardVariant, CardGeo> = {
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
-// a flat accent sleeve with the film's "Night Swim" rings
-const Sleeve: React.FC<{ size: number; accent: string }> = ({ size, accent }) => (
+// a flat accent sleeve with the film's "Night Swim" rings; `sw` is a hairline in viewBox units
+const Sleeve: React.FC<{ size: number; c: CardTokens; sw: number }> = ({ size, c, sw }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "block" }}>
-    <rect width={100} height={100} rx={2} fill={accent} />
+    <rect width={100} height={100} fill={c.accent} />
     {[14, 22, 30, 38, 46].map((r) => (
-      <circle key={r} cx={68} cy={32} r={r} fill="none" stroke="rgba(255,255,255,0.32)" strokeWidth={0.5} />
+      <circle key={r} cx={68} cy={32} r={r} fill="none" stroke={alpha(c.onAccent, 0.3)} strokeWidth={sw} />
     ))}
-    <circle cx={68} cy={32} r={7} fill="rgba(255,255,255,0.92)" />
-    <text x={7} y={92} fontFamily={FONT_SANS} fontSize={8.5} fontWeight={600} letterSpacing={-0.2} fill="#FFFFFF">
+    <circle cx={68} cy={32} r={7} fill={c.onAccent} />
+    <text x={7} y={92} fontFamily={FONT_SANS} fontSize={8.5} fontWeight={500} letterSpacing={-0.2} fill={c.onAccent}>
       Night Swim
     </text>
   </svg>
 );
 
-// a black vinyl drawn in SVG; grooves and label turn, the sheen stays put
-const Vinyl: React.FC<{ size: number; accent: string; rot: number }> = ({ size, accent, rot }) => (
+// a black vinyl drawn in SVG; grooves and label turn, the reflections stay put
+const Vinyl: React.FC<{ size: number; rot: number; sw: number }> = ({ size, rot, sw }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "block" }}>
-    <circle cx={50} cy={50} r={50} fill={INK} />
+    <circle cx={50} cy={50} r={50} fill={VINYL} />
     {[46, 41.5, 37, 32.5, 28, 23.5].map((r) => (
-      <circle key={r} cx={50} cy={50} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={0.5} />
+      <circle key={r} cx={50} cy={50} r={r} fill="none" stroke={alpha(VINYL_LABEL, 0.08)} strokeWidth={sw} />
     ))}
-    <path d="M50 50L84 14A50 50 0 0 1 95 30z" fill="rgba(255,255,255,0.06)" />
-    <path d="M50 50L16 86A50 50 0 0 1 5 70z" fill="rgba(255,255,255,0.045)" />
+    <path d="M50 50L84 14A50 50 0 0 1 95 30z" fill={alpha(VINYL_LABEL, 0.06)} />
+    <path d="M50 50L16 86A50 50 0 0 1 5 70z" fill={alpha(VINYL_LABEL, 0.045)} />
     <g transform={`rotate(${rot} 50 50)`}>
-      <circle cx={50} cy={50} r={17} fill={accent} />
-      <text x={50} y={42.5} textAnchor="middle" fontFamily={FONT_SANS} fontSize={5} fontWeight={700} letterSpacing={-0.1} fill="rgba(255,255,255,0.9)">
+      <circle cx={50} cy={50} r={17} fill={VINYL_LABEL} />
+      <text x={50} y={42.5} textAnchor="middle" fontFamily={FONT_SANS} fontSize={5} fontWeight={600} letterSpacing={-0.1} fill={VINYL_LABEL_INK}>
         Loop
       </text>
-      <circle cx={50} cy={60} r={1.2} fill="rgba(255,255,255,0.6)" />
+      <circle cx={50} cy={60} r={1.2} fill={VINYL_LABEL_INK} />
     </g>
-    <circle cx={50} cy={50} r={1.7} fill={INK} />
+    <circle cx={50} cy={50} r={1.7} fill={VINYL} />
   </svg>
 );
 
 export const RecordCard: React.FC<{
   x: number;
   y: number;
-  s: number;
+  s: number; // geometry scale (u × the layout's card scale)
+  u: number; // radii and strokes stay on the system scale
   variant: CardVariant;
-  accent: string;
-  labelColor: string;
-  badgeText: string;
+  c: CardTokens;
   v: number[];
   rot: number;
-}> = ({ x, y, s, variant, accent, labelColor, badgeText, v, rot }) => {
-  const g = GEO[variant];
+}> = ({ x, y, s, u, variant, c, v, rot }) => {
+  const g = CARD_GEO[variant];
   const [vh, vs, vv, vt, vp] = v;
   // Start states stay faintly visible (an onion skin), so the card never reads as empty while keys are set.
-  const ghost = (v: number) => 0.2 + 0.8 * v;
+  const ghost = (k: number) => 0.2 + 0.8 * k;
   const sleeveO = 0.35 + 0.65 * clamp01(vs * 1.4);
-  const hair = `${Math.max(1, s)}px solid ${LINE}`;
-  // centred on the selection box corners (box border is 1.5, handle is 9)
-  const off = -5.25 * s;
-  const handle = (l: boolean, t: boolean): React.CSSProperties => ({
+  const hairPx = STROKE.hair * u;
+  const hair = `${hairPx}px solid ${c.line}`;
+  const handle = 9 * s;
+  const off = -(handle + hairPx) / 2; // handles centred on the selection box's border corners
+  const corner = (l: boolean, t: boolean): React.CSSProperties => ({
     position: "absolute",
     left: l ? off : undefined,
     right: l ? undefined : off,
     top: t ? off : undefined,
     bottom: t ? undefined : off,
-    width: 9 * s,
-    height: 9 * s,
-    background: "#FFFFFF",
-    border: `${1.5 * s}px solid ${accent}`,
+    width: handle,
+    height: handle,
+    background: c.card,
+    border: `${hairPx}px solid ${c.accent}`,
     boxSizing: "border-box",
   });
+  const objShadow = `0 ${8 * s}px ${24 * s}px rgba(0,0,0,0.12)`;
 
   return (
     <div style={{ position: "absolute", left: x, top: y, width: g.w * s, height: g.h * s, fontFamily: FONT_SANS }}>
       {/* Figma frame label */}
-      <div style={{ position: "absolute", left: 0, top: -40 * s, height: 26 * s, display: "flex", alignItems: "center", gap: 9 * s, color: labelColor, fontSize: 16 * s, whiteSpace: "nowrap" }}>
-        <span style={{ fontFamily: FONT_MONO, fontSize: 14 * s, opacity: 0.7 }}>{"{ }"}</span>
-        <span style={{ opacity: 0.85 }}>Loop / Record</span>
-        <span style={{ fontSize: 12 * s, fontWeight: 600, color: badgeText, background: labelColor, borderRadius: 5 * s, padding: `${3 * s}px ${8 * s}px`, lineHeight: 1 }}>Motion</span>
+      <div style={{ position: "absolute", left: 0, top: -40 * s, height: 26 * s, display: "flex", alignItems: "center", gap: 9 * s, color: c.ink2, fontSize: 16 * s, whiteSpace: "nowrap" }}>
+        <span style={{ fontFamily: FONT_MONO, fontSize: 14 * s }}>{"{ }"}</span>
+        <span>Loop / Record</span>
+        <span style={{ fontSize: 12 * s, fontWeight: 500, color: c.bg, background: c.ink, borderRadius: RADIUS.chip * u, padding: `${3 * s}px ${8 * s}px`, lineHeight: 1 }}>Motion</span>
       </div>
 
       {/* the card */}
-      <div style={{ position: "absolute", inset: 0, background: "#FFFFFF", borderRadius: 18 * s, border: hair, boxSizing: "border-box", overflow: "hidden", color: INK, boxShadow: `0 ${s}px ${2 * s}px rgba(0,0,0,0.04), 0 ${8 * s}px ${24 * s}px rgba(0,0,0,0.06)` }}>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: c.card,
+          borderRadius: RADIUS.card * u,
+          border: hair,
+          boxSizing: "border-box",
+          overflow: "hidden",
+          color: c.ink,
+          boxShadow: c.shadow ? `0 ${u}px ${2 * u}px rgba(0,0,0,0.04), 0 ${8 * u}px ${24 * u}px rgba(0,0,0,0.06)` : undefined,
+        }}
+      >
         {/* Header */}
         <div style={{ position: "absolute", left: g.head.x * s, top: g.head.y * s, display: "flex", alignItems: "center", gap: 12 * s, opacity: ghost(vh), transform: `translateY(${(1 - vh) * -14 * s}px)` }}>
-          <span style={{ fontSize: 28 * s, fontWeight: 700, letterSpacing: "-0.05em", lineHeight: 1 }}>Loop</span>
-          <span style={{ fontSize: 12 * s, fontWeight: 500, color: SUB, background: SOFT, borderRadius: 99, padding: `${5 * s}px ${10 * s}px`, lineHeight: 1 }}>New this week</span>
+          <span style={{ fontSize: 28 * s, fontWeight: 600, letterSpacing: "-0.04em", lineHeight: 1 }}>Loop</span>
+          <span style={{ fontSize: 12 * s, fontWeight: 500, color: c.ink2, background: c.fill, borderRadius: 999, padding: `${5 * s}px ${10 * s}px`, lineHeight: 1 }}>New this week</span>
         </div>
 
         {/* Vinyl, behind its sleeve */}
-        <div style={{ position: "absolute", left: (g.sleeve.x + 8 + vv * g.vinyl.slide) * s, top: (g.sleeve.y + (g.sleeve.size - g.vinyl.size) / 2) * s, opacity: sleeveO, borderRadius: "50%", boxShadow: `0 ${10 * s}px ${24 * s}px rgba(0,0,0,0.18)` }}>
-          <Vinyl size={g.vinyl.size * s} accent={accent} rot={rot} />
+        <div style={{ position: "absolute", left: (g.sleeve.x + 8 + vv * g.vinyl.slide) * s, top: (g.sleeve.y + (g.sleeve.size - g.vinyl.size) / 2) * s, opacity: sleeveO, borderRadius: 999, boxShadow: objShadow }}>
+          <Vinyl size={g.vinyl.size * s} rot={rot} sw={(hairPx * 100) / (g.vinyl.size * s)} />
         </div>
         {/* Sleeve */}
-        <div style={{ position: "absolute", left: g.sleeve.x * s, top: g.sleeve.y * s, borderRadius: 5 * s, overflow: "hidden", opacity: sleeveO, transform: `translateX(${(1 - vs) * -36 * s}px) rotate(${(1 - vs) * -5}deg)`, boxShadow: `0 ${12 * s}px ${28 * s}px rgba(0,0,0,0.16)` }}>
-          <Sleeve size={g.sleeve.size * s} accent={accent} />
+        <div style={{ position: "absolute", left: g.sleeve.x * s, top: g.sleeve.y * s, borderRadius: RADIUS.chip * u, overflow: "hidden", opacity: sleeveO, transform: `translateX(${(1 - vs) * -36 * s}px) rotate(${(1 - vs) * -5}deg)`, boxShadow: objShadow }}>
+          <Sleeve size={g.sleeve.size * s} c={c} sw={(hairPx * 100) / (g.sleeve.size * s)} />
         </div>
 
         {/* Title (rides with Header) + Play */}
         <div style={{ position: "absolute", left: g.title.x * s, top: g.title.y * s, opacity: ghost(vh), transform: `translateY(${(1 - vh) * -14 * s}px)` }}>
-          <div style={{ fontSize: 30 * s, fontWeight: 600, letterSpacing: "-0.035em", lineHeight: 1.1 }}>Night Swim</div>
-          <div style={{ fontSize: 15 * s, color: SUB, marginTop: 6 * s }}>Mara Vale · Vinyl LP · 2026</div>
+          <div style={{ fontSize: 30 * s, fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1.1 }}>Night Swim</div>
+          <div style={{ fontSize: 15 * s, color: c.ink2, marginTop: 6 * s }}>Mara Vale · Vinyl LP · 2026</div>
         </div>
-        <div style={{ position: "absolute", left: (g.title.x + g.title.w - g.play) * s, top: (g.title.y - 2) * s, width: g.play * s, height: g.play * s, borderRadius: "50%", background: INK, display: "flex", alignItems: "center", justifyContent: "center", opacity: ghost(vp), transform: `scale(${0.6 + 0.4 * vp})` }}>
+        <div style={{ position: "absolute", left: (g.title.x + g.title.w - g.play) * s, top: (g.title.y - 2) * s, width: g.play * s, height: g.play * s, borderRadius: 999, background: c.button, display: "flex", alignItems: "center", justifyContent: "center", opacity: ghost(vp), transform: `scale(${0.6 + 0.4 * vp})` }}>
           <svg width={18 * s} height={18 * s} viewBox="0 0 10 10">
-            <path d="M2.6 1.2l6 3.8-6 3.8z" fill="#FFFFFF" />
+            <path d="M2.6 1.2l6 3.8-6 3.8z" fill={c.onButton} />
           </svg>
         </div>
 
@@ -160,9 +190,9 @@ export const RecordCard: React.FC<{
             const kk = clamp01(vt * 1.6 - k * 0.3);
             return (
               <div key={name} style={{ display: "flex", alignItems: "center", height: 44 * s, borderTop: hair, opacity: ghost(kk), transform: `translateX(${(1 - kk) * 28 * s}px)` }}>
-                <span style={{ width: 34 * s, fontFamily: FONT_MONO, fontSize: 13 * s, color: SUB }}>0{k + 1}</span>
+                <span style={{ width: 34 * s, fontFamily: FONT_MONO, fontSize: 13 * s, color: c.ink2 }}>0{k + 1}</span>
                 <span style={{ fontSize: 16 * s, fontWeight: 500 }}>{name}</span>
-                <span style={{ marginLeft: "auto", fontSize: 14 * s, color: SUB, fontVariantNumeric: "tabular-nums" }}>{d}</span>
+                <span style={{ marginLeft: "auto", fontSize: 14 * s, color: c.ink2, fontVariantNumeric: "tabular-nums" }}>{d}</span>
               </div>
             );
           })}
@@ -170,11 +200,11 @@ export const RecordCard: React.FC<{
       </div>
 
       {/* Figma selection box with corner handles */}
-      <div style={{ position: "absolute", inset: -7 * s, border: `${1.5 * s}px solid ${accent}`, pointerEvents: "none" }}>
-        <div style={handle(true, true)} />
-        <div style={handle(false, true)} />
-        <div style={handle(true, false)} />
-        <div style={handle(false, false)} />
+      <div style={{ position: "absolute", inset: -7 * s, border: `${hairPx}px solid ${c.accent}`, pointerEvents: "none" }}>
+        <div style={corner(true, true)} />
+        <div style={corner(false, true)} />
+        <div style={corner(true, false)} />
+        <div style={corner(false, false)} />
       </div>
     </div>
   );

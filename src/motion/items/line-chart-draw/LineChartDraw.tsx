@@ -1,16 +1,18 @@
 import React, { useId } from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
-import { FONT_MONO, FONT_SANS, alpha, progress, useLayout } from "../../kit";
+import { FONT_MONO, FONT_SANS, RADIUS, STAGGER, STROKE, alpha, progress, useLayout } from "../../kit";
 
 export type LineChartDrawProps = {
   background: string;
   ink: string;
-  muted: string;
-  grid: string;
+  ink2: string;
+  ink3: string;
   line: string;
-  lineStart: string;
+  accent: string;
   tooltip: string;
   tooltipInk: string;
+  success: string;
+  error: string;
   title: string;
   labels: string;
   values: string;
@@ -40,7 +42,7 @@ const fmt = (n: number, d = 0) => {
 };
 
 // Nice step on the data range; the axis floor drops to 0 when the data sits close to it.
-const niceDomain = (min: number, max: number, ticks = 4) => {
+export const niceDomain = (min: number, max: number, ticks = 4) => {
   const lo0 = min >= 0 && min < max * 0.4 ? 0 : min;
   const span = Math.max(max - lo0, 1e-6);
   const rough = span / ticks;
@@ -50,6 +52,14 @@ const niceDomain = (min: number, max: number, ticks = 4) => {
   const lo = Math.floor(lo0 / step + 1e-9) * step;
   const hi = Math.max(lo + step, Math.ceil(max / step - 1e-9) * step);
   return { lo, hi, step };
+};
+
+// Dark canvases get no surface shadow (the system's rule for Ink).
+const isDark = (hex: string) => {
+  const h = hex.replace("#", "");
+  const v = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h.slice(0, 6), 16);
+  if (!Number.isFinite(v)) return false;
+  return 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255) < 128;
 };
 
 type Pt = { x: number; y: number };
@@ -96,6 +106,9 @@ const bez = (s: Seg, t: number): Pt => {
   return { x: a * s.p0.x + b * s.c1.x + c * s.c2.x + d * s.p1.x, y: a * s.p0.y + b * s.c1.y + c * s.c2.y + d * s.p1.y };
 };
 
+// Shared with the prompt.
+export const DRAW_START = 16;
+
 export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
   const frame = useCurrentFrame();
   const { width, height, u, ratio, isVertical, durationInFrames } = useLayout();
@@ -108,14 +121,14 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
   const ticks = Math.round((hi - lo) / step);
 
   const wide = ratio === "16:9";
-  const padX = (wide ? 128 : 84) * u;
-  const padTop = (wide ? 104 : isVertical ? 200 : 84) * u;
-  const padBottom = (wide ? 104 : isVertical ? 260 : 80) * u;
-  const headerH = (isVertical ? 300 : wide ? 190 : 180) * u;
-  const left = padX + 76 * u;
-  const right = width - padX - 24 * u;
-  const top = padTop + headerH + 120 * u;
-  const bottom = height - padBottom - 56 * u;
+  const padX = (wide ? 200 : 84) * u;
+  const padTop = (wide ? 120 : isVertical ? 200 : 96) * u;
+  const padBottom = (wide ? 112 : isVertical ? 260 : 80) * u;
+  const headerH = (isVertical ? 300 : 140) * u;
+  const left = padX + 64 * u;
+  const right = width - padX - 16 * u;
+  const top = padTop + headerH + 130 * u;
+  const bottom = height - padBottom - 48 * u;
   const cw = right - left;
   const ch = bottom - top;
 
@@ -139,23 +152,26 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
     return { x: samples[i - 1].x + (samples[i].x - samples[i - 1].x) * f, y: samples[i - 1].y + (samples[i].y - samples[i - 1].y) * f };
   };
 
-  const drawStart = 16;
-  const drawEnd = drawStart + (p.draw / 100) * durationInFrames;
-  const t = Math.min(1, progress(frame, drawStart, drawEnd, p.ease));
+  const drawEnd = DRAW_START + (p.draw / 100) * durationInFrames;
+  const t = Math.min(1, progress(frame, DRAW_START, drawEnd, p.ease));
   const tip = pointAt(L * t);
   const tipValue = lo + ((bottom - tip.y) / ch) * (hi - lo);
   const tipIdx = Math.min(n - 1, Math.max(0, Math.round(((tip.x - left) / cw) * (n - 1))));
   const head = progress(frame, 0, 22, "enter");
-  const area = progress(frame, drawStart + 8, drawEnd + 12, "enter");
-  const tipIn = progress(frame, drawStart, drawStart + 10, "enter");
-  const pulse = frame > drawEnd ? ((frame - drawEnd) % 45) / 45 : 0;
+  const area = progress(frame, DRAW_START + 6, DRAW_START + 30, "enter");
+  const tipIn = progress(frame, DRAW_START, DRAW_START + 18, "enter");
 
   const last = values[n - 1];
   const first = values[0];
   const deltaPct = first !== 0 ? ((last - first) / Math.abs(first)) * 100 : null;
-  const tipW = 168 * u;
-  const tipX = Math.min(Math.max(tip.x, left + tipW / 2 - 24 * u), right - tipW / 2 + 24 * u);
+  const dc = deltaPct !== null && deltaPct < 0 ? p.error : p.success;
+  const chip = progress(frame, drawEnd - 6, drawEnd + 14, "enter");
+  const tipW = 152 * u;
+  const tipH = 80 * u;
+  const tipX = Math.min(Math.max(tip.x, left + tipW / 2 - 24 * u), right - tipW / 2 + 16 * u);
+  const shadow = isDark(p.background) ? "none" : `0 ${1 * u}px ${2 * u}px ${alpha(p.ink, 0.04)}, 0 ${8 * u}px ${24 * u}px ${alpha(p.ink, 0.06)}`;
   const mono: React.CSSProperties = { fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums" };
+  const tiny: React.CSSProperties = { ...mono, fontSize: 18 * u, letterSpacing: "0.12em", textTransform: "uppercase", color: p.ink3 };
   const labelEvery = n > 12 ? 2 : 1;
 
   return (
@@ -166,58 +182,49 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
           left: padX,
           right: padX,
           top: padTop,
+          height: headerH,
           display: "flex",
           flexDirection: isVertical ? "column" : "row",
-          justifyContent: "space-between",
+          justifyContent: isVertical ? "flex-end" : "space-between",
           alignItems: isVertical ? "flex-start" : "flex-end",
           gap: 36 * u,
           opacity: head,
           transform: `translateY(${(1 - head) * 24 * u}px)`,
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 * u }}>
-          <span style={{ ...mono, fontSize: 20 * u, letterSpacing: "0.14em", textTransform: "uppercase", color: p.muted }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 * u, minWidth: 0 }}>
+          <span style={tiny}>
             {labels[0]} – {labels[n - 1]}
           </span>
-          <span style={{ fontSize: (wide ? 68 : 60) * u, fontWeight: 650, letterSpacing: "-0.04em", lineHeight: 1.02, maxWidth: (isVertical ? 900 : wide ? 1000 : 560) * u }}>{p.title}</span>
+          <span style={{ fontSize: 44 * u, fontWeight: 500, letterSpacing: "-0.035em", lineHeight: 1.1, whiteSpace: "nowrap", overflow: "hidden", maxWidth: (isVertical ? 900 : wide ? 860 : 520) * u }}>{p.title}</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 18 * u }}>
           {deltaPct !== null && (
             <span
               style={{
                 ...mono,
-                fontSize: 22 * u,
-                fontWeight: 600,
-                color: p.line,
-                background: alpha(p.line, 0.14),
-                padding: `${8 * u}px ${14 * u}px`,
-                borderRadius: 999,
-                opacity: progress(frame, drawEnd - 6, drawEnd + 10, "enter"),
+                fontSize: 18 * u,
+                fontWeight: 500,
+                color: dc,
+                background: alpha(dc, 0.12),
+                padding: `${6 * u}px ${10 * u}px`,
+                borderRadius: RADIUS.chip * u,
+                opacity: chip,
+                transform: `translateY(${(1 - chip) * 8 * u}px)`,
               }}
             >
               {deltaPct >= 0 ? "+" : "−"}
               {fmt(Math.abs(deltaPct), 0)}%
             </span>
           )}
-          <span style={{ fontSize: 84 * u, fontWeight: 650, letterSpacing: "-0.045em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-            {fmt(last * progress(frame, drawStart, drawEnd, "enter"), decimals)}
+          <span style={{ fontSize: 96 * u, fontWeight: 600, letterSpacing: "-0.045em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+            {fmt(last * progress(frame, DRAW_START, drawEnd, "enter"), decimals)}
           </span>
         </div>
       </div>
 
       <svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }}>
         <defs>
-          <linearGradient id={`${id}-stroke`} gradientUnits="userSpaceOnUse" x1={left} y1={0} x2={right} y2={0}>
-            <stop offset="0" stopColor={p.lineStart} />
-            <stop offset="1" stopColor={p.line} />
-          </linearGradient>
-          <linearGradient id={`${id}-area`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={p.line} stopOpacity={0.34} />
-            <stop offset="1" stopColor={p.line} stopOpacity={0} />
-          </linearGradient>
-          <filter id={`${id}-glow`} filterUnits="userSpaceOnUse" x={0} y={0} width={width} height={height}>
-            <feGaussianBlur stdDeviation={10 * u} />
-          </filter>
           <clipPath id={`${id}-clip`}>
             <rect x={left - 20 * u} y={0} width={Math.max(0, tip.x - left + 20 * u)} height={height} />
           </clipPath>
@@ -225,50 +232,35 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
 
         {Array.from({ length: ticks + 1 }, (_, k) => {
           const y = bottom - (k / ticks) * ch;
-          const g = progress(frame, 4 + k * 3, 30 + k * 3, "enter");
+          const g = progress(frame, 4 + k * STAGGER, 28 + k * STAGGER, "enter");
           return (
             <line
               key={k}
-              x1={left - 8 * u}
-              x2={left - 8 * u + (cw + 8 * u) * g}
+              x1={left}
+              x2={left + cw * g}
               y1={y}
               y2={y}
-              stroke={k === 0 ? alpha(p.ink, 0.28) : p.grid}
-              strokeWidth={(k === 0 ? 2 : 1.5) * u}
-              strokeDasharray={k === 0 ? undefined : `${4 * u} ${8 * u}`}
+              stroke={k === 0 ? p.ink : p.line}
+              strokeOpacity={k === 0 ? 0.2 : 1}
+              strokeWidth={STROKE.hair * u}
             />
           );
         })}
 
-        <path d={`${d} L ${right} ${bottom} L ${left} ${bottom} Z`} fill={`url(#${id}-area)`} opacity={area} clipPath={`url(#${id}-clip)`} />
-        <line x1={tip.x} x2={tip.x} y1={tip.y} y2={bottom} stroke={alpha(p.line, 0.5)} strokeWidth={1.5 * u} strokeDasharray={`${3 * u} ${6 * u}`} opacity={tipIn} />
+        {/* flat, low-opacity area under the line: no gradient */}
+        <path d={`${d} L ${right} ${bottom} L ${left} ${bottom} Z`} fill={p.accent} fillOpacity={0.08} opacity={area} clipPath={`url(#${id}-clip)`} />
+        <line x1={tip.x} x2={tip.x} y1={tip.y} y2={bottom} stroke={p.ink} strokeOpacity={0.25} strokeWidth={STROKE.hair * u} strokeDasharray={`${3 * u} ${6 * u}`} opacity={tipIn} />
         <path
           d={d}
           fill="none"
-          stroke={p.line}
-          strokeOpacity={0.45}
-          strokeWidth={10 * u}
-          strokeLinecap="round"
-          filter={`url(#${id}-glow)`}
-          strokeDasharray={`${L + 2} ${L + 2}`}
-          strokeDashoffset={(L + 2) * (1 - t)}
-        />
-        <path
-          d={d}
-          fill="none"
-          stroke={`url(#${id}-stroke)`}
-          strokeWidth={5 * u}
+          stroke={p.accent}
+          strokeWidth={STROKE.ring * u}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeDasharray={`${L + 2} ${L + 2}`}
           strokeDashoffset={(L + 2) * (1 - t)}
         />
-        {pts.map((pt, i) => {
-          const on = frame > drawStart && tip.x >= pt.x - 0.5 && i !== n - 1;
-          return <circle key={i} cx={pt.x} cy={pt.y} r={5 * u} fill={p.background} stroke={p.line} strokeWidth={2.5 * u} opacity={on ? 0.9 : 0} />;
-        })}
-        <circle cx={tip.x} cy={tip.y} r={(10 + 26 * pulse) * u} fill={p.line} opacity={(1 - pulse) * 0.28 * tipIn} />
-        <circle cx={tip.x} cy={tip.y} r={10 * u} fill={p.line} stroke={p.background} strokeWidth={4 * u} opacity={tipIn} />
+        <circle cx={tip.x} cy={tip.y} r={8 * u} fill={p.accent} stroke={p.background} strokeWidth={STROKE.ring * u} opacity={tipIn} />
       </svg>
 
       {Array.from({ length: ticks + 1 }, (_, k) => {
@@ -276,7 +268,7 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
         return (
           <span
             key={k}
-            style={{ ...mono, position: "absolute", right: width - left + 22 * u, top: y - 13 * u, fontSize: 20 * u, lineHeight: `${26 * u}px`, color: p.muted, opacity: progress(frame, 8 + k * 3, 30 + k * 3, "enter") }}
+            style={{ ...mono, position: "absolute", right: width - left + 20 * u, top: y - 12 * u, fontSize: 18 * u, lineHeight: `${24 * u}px`, color: p.ink3, opacity: progress(frame, 8 + k * STAGGER, 28 + k * STAGGER, "enter") }}
           >
             {fmt(lo + k * step, step % 1 === 0 ? 0 : 1)}
           </span>
@@ -287,13 +279,14 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
           <span
             key={i}
             style={{
+              ...mono,
               position: "absolute",
               left: pts[i].x,
               top: bottom + 20 * u,
               transform: "translateX(-50%)",
-              fontSize: 22 * u,
-              color: i === tipIdx && tipIn > 0 ? p.ink : p.muted,
-              fontWeight: i === tipIdx && tipIn > 0 ? 600 : 400,
+              fontSize: 18 * u,
+              color: i === tipIdx && tipIn > 0 ? p.ink : p.ink3,
+              fontWeight: i === tipIdx && tipIn > 0 ? 500 : 400,
               whiteSpace: "nowrap",
               opacity: progress(frame, 10, 30, "enter"),
             }}
@@ -308,35 +301,34 @@ export const LineChartDraw: React.FC<LineChartDrawProps> = (p) => {
         style={{
           position: "absolute",
           left: tipX - tipW / 2,
-          top: tip.y - 124 * u,
+          top: tip.y - 112 * u,
           width: tipW,
-          height: 92 * u,
-          borderRadius: 18 * u,
+          height: tipH,
+          borderRadius: RADIUS.button * u,
           background: p.tooltip,
           color: p.tooltipInk,
-          boxShadow: `0 ${16 * u}px ${40 * u}px rgba(0,0,0,0.28)`,
+          boxShadow: shadow,
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          gap: 4 * u,
+          gap: 6 * u,
           opacity: tipIn,
           transform: `translateY(${(1 - tipIn) * 12 * u}px)`,
         }}
       >
-        <span style={{ ...mono, fontSize: 18 * u, letterSpacing: "0.1em", textTransform: "uppercase", opacity: 0.6 }}>{labels[tipIdx]}</span>
-        <span style={{ fontSize: 34 * u, fontWeight: 650, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{fmt(tipValue, decimals)}</span>
+        <span style={{ ...mono, fontSize: 15 * u, letterSpacing: "0.12em", textTransform: "uppercase", opacity: 0.6 }}>{labels[tipIdx]}</span>
+        <span style={{ fontSize: 30 * u, fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{fmt(tipValue, decimals)}</span>
       </div>
       <div
         style={{
           position: "absolute",
-          left: tip.x - 9 * u,
-          top: tip.y - 41 * u,
-          width: 18 * u,
-          height: 18 * u,
+          left: tip.x - 7 * u,
+          top: tip.y - 112 * u + tipH - 7 * u,
+          width: 14 * u,
+          height: 14 * u,
           background: p.tooltip,
-          transform: "rotate(45deg)",
-          borderRadius: 3 * u,
+          transform: `translateY(${(1 - tipIn) * 12 * u}px) rotate(45deg)`,
           opacity: tipIn,
         }}
       />

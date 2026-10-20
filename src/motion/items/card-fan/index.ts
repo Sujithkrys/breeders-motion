@@ -1,14 +1,16 @@
-import { EASE_OPTIONS, bezierText, targetLine } from "../../kit";
+import { EASE_OPTIONS, FINAL_HOLD, RADIUS, STROKE, bezierText, systemPalettes, targetLine } from "../../kit";
 import { defineMotion } from "../../types";
-import { CardFan, type CardFanProps } from "./CardFan";
+import { CARD_W, CardFan, FAN, isDark, type CardFanProps } from "./CardFan";
 
-const palettes = [
-  { name: "Aurora", swatch: ["#7C5CFF", "#0067FC", "#22D3EE"], values: { front1: "#7C5CFF", front2: "#0067FC", front3: "#22D3EE" } },
-  { name: "Ember", swatch: ["#FFB347", "#FF5F3D", "#C8264B"], values: { front1: "#FFB347", front2: "#FF5F3D", front3: "#C8264B" } },
-  { name: "Mint", swatch: ["#7CF2C4", "#14B8A6", "#0F5F66"], values: { front1: "#7CF2C4", front2: "#14B8A6", front3: "#0F5F66" } },
-  { name: "Orchid", swatch: ["#F9A8D4", "#D946EF", "#6D28D9"], values: { front1: "#F9A8D4", front2: "#D946EF", front3: "#6D28D9" } },
-  { name: "Mono", swatch: ["#5A5A62", "#2A2A2F", "#0E0E10"], values: { front1: "#5A5A62", front2: "#2A2A2F", front3: "#0E0E10" } },
-];
+const palettes = systemPalettes((t) => ({
+  background: t.bg,
+  card: t.card,
+  line: t.line,
+  ink: t.ink,
+  ink3: t.ink3,
+  accent: t.accent,
+  onAccent: t.onAccent,
+}));
 
 export default defineMotion<CardFanProps>({
   slug: "card-fan",
@@ -22,10 +24,7 @@ export default defineMotion<CardFanProps>({
   ratios: ["16:9", "9:16", "1:1"],
   component: CardFan,
   defaultProps: {
-    background: "#0B0B0D",
     ...palettes[0].values,
-    backA: "#F4F1EA",
-    backB: "#45454D",
     label: "Breeders",
     last4: "2048",
     spread: 360,
@@ -36,23 +35,32 @@ export default defineMotion<CardFanProps>({
   controls: [
     { type: "text", key: "label", label: "Label", maxLength: 18 },
     { type: "text", key: "last4", label: "Last four", maxLength: 4 },
-    { type: "color", key: "front2", label: "Front card" },
+    { type: "color", key: "accent", label: "Accent" },
     { type: "color", key: "background", label: "Background" },
     { type: "number", key: "spread", label: "Spread", min: 160, max: 520, step: 20, unit: "px" },
     { type: "number", key: "tilt", label: "Tilt", min: 0, max: 18, step: 1, unit: "°" },
     { type: "select", key: "ease", label: "Easing", options: EASE_OPTIONS },
   ],
-  prompt: (p, c) =>
-    [
-      targetLine(c.target, "three payment cards fanning out of a stack", c.width, c.height, c.seconds),
-      `Background ${p.background}. Font Geist; card numbers in Geist Mono with 0.12em tracking.`,
+  prompt: (p, c) => {
+    const wide = c.width > c.height;
+    const w = wide ? CARD_W : 560;
+    const h = Math.round(w * 0.63);
+    const dark = isDark(p.background);
+    const end = c.seconds * c.fps;
+    return [
+      targetLine(c.target, "three flat payment cards fanning out of a stack", c.width, c.height, c.seconds),
+      `Background: flat ${p.background}. No gradients, glows or coloured shadows anywhere.`,
+      `Type: Inter. Front label "${p.label}" 34px weight 500, -0.02em, in ${p.onAccent}. Card numbers in Geist Mono 30px weight 400, +0.12em tracking.`,
+      `Cards: ${w}×${h}px (sizes at 1080 on the short side), radius ${RADIUS.card}, stacked at the centre.`,
+      `- back left: ${p.card} with a 1px ${p.line} border, "•••• 7310" in ${p.ink3}`,
+      `- back right: flat ${p.ink}, "•••• 0941" in ${p.ink3}`,
+      `- front: flat ${p.accent}. A contactless mark (${STROKE.ring}px stroke, ${p.onAccent} at 85%), a 88×66 chip (radius ${RADIUS.chip}, ${p.onAccent} at 30%), "•••• ${p.last4}" and two overlapping 52px circles (${p.onAccent} at 75% and 40%).`,
+      dark ? "No shadows on this dark canvas." : "Each card has shadow 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06).",
       "",
-      "Cards are 680×428 with radius 48, stacked at the centre:",
-      `- back left: ${p.backA} gradient, "•••• 7310"`,
-      `- back right: ${p.backB} → #101012, "•••• 0941"`,
-      `- front: 135° gradient ${p.front1} → ${p.front2} → ${p.front3}, label "${p.label}", chip, contactless mark, "•••• ${p.last4}", soft ${p.front2} glow`,
-      "",
-      `0% → 38% of the loop: back cards slide out to ±${p.spread}px and rotate ±${p.tilt}°; the front card lifts ${Math.round(p.spread * 0.19)}px.`,
-      `Hold to 80%, then settle back. Ease ${p.ease} ${bezierText(p.ease)}. Loop seamlessly.`,
-    ].join("\n"),
+      `Frames 0–${FAN.out[0]}: hold the stack.`,
+      `Frames ${FAN.out[0]}–${FAN.out[1]}: the back cards slide to ±${p.spread}px${wide ? "" : " (scaled to fit the narrower frame)"} and rotate ±${p.tilt}°, and the front card lifts ${Math.round(p.spread * 0.19)}px. Ease: ${p.ease}, ${bezierText(p.ease)}.`,
+      `Hold to frame ${FAN.back[0]}. Frames ${FAN.back[0]}–${FAN.back[1]}: settle back to the stack on travel, ${bezierText("travel")}.`,
+      `Frames ${end - FINAL_HOLD}–${end}: hold still, so the loop is seamless.`,
+    ].join("\n");
+  },
 });

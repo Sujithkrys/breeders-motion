@@ -1,9 +1,9 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
-import { FONT_MONO, FONT_SANS, alpha, mix, progress, useLayout } from "../../kit";
+import { FINAL_HOLD, FONT_MONO, FONT_SANS, RADIUS, STAGGER, STROKE, alpha, mix, progress, useLayout } from "../../kit";
 
 // Ported from the "I · integrations" and "scroll effect" shots of our Framer film (Tempo's Hub section): six tool
-// tiles, hairline connectors that merge into a spine and draw into a white "Today" card, rows filling as they land.
+// tiles, hairline connectors that merge into a spine and draw into a "Today" card, rows filling as they land.
 
 export type IntegrationsTimelineProps = {
   title: string;
@@ -20,31 +20,39 @@ export type IntegrationsTimelineProps = {
   label4: string;
   background: string;
   card: string;
-  border: string;
+  line: string;
+  fill: string;
+  ink: string;
+  ink2: string;
+  ink3: string;
   accent: string;
-  stagger: number; // frames between tiles
+  stagger: number; // frames between connector draws
   ease: string;
 };
 
 // ---------- timing (frames at 30fps) ----------
-export const TIMING = { first: 6, drop: 16, lineDelay: 8, draw: 22, fill: 14, ripple: 18, exitAt: 0.82 } as const;
+// Tiles drop in 3 frames apart; connectors then draw one by one, `stagger` frames apart; everything exits on the exit
+// curve and the last FINAL_HOLD frames match frame 0.
+export const TIMING = { first: 6, drop: 20, lineFirst: 30, draw: 22, fill: 18, ripple: 18, exit: 16 } as const;
 // Which arrival (0-based, in draw order) fills each schedule row: lines 1, 3, 4 and 6.
 export const ROW_AT = [0, 2, 3, 5] as const;
+// The row that is "now": the only one tinted with the accent.
+export const ACTIVE_ROW = 3;
+export const ACTIVE_TINT = 0.12;
+// Connector lines sit at this opacity of ink.
+export const LINE_ALPHA = 0.24;
 // Draw order alternates sides: L1, R1, L2, R2, L3, R3. Tile index (0–2 left, 3–5 right) → order.
 export const orderOf = (i: number) => (i < 3 ? i * 2 : (i - 3) * 2 + 1);
-export const timing = (stagger: number) => {
-  const tileAt = (k: number) => TIMING.first + k * stagger;
-  const lineAt = (k: number) => tileAt(k) + TIMING.lineDelay;
+export const timing = (stagger: number, durationInFrames: number) => {
+  const tileAt = (k: number) => TIMING.first + k * STAGGER;
+  const lineAt = (k: number) => TIMING.lineFirst + k * stagger;
   const arriveAt = (k: number) => lineAt(k) + TIMING.draw;
-  return { tileAt, lineAt, arriveAt };
+  const exitAt = durationInFrames - FINAL_HOLD - TIMING.exit;
+  return { tileAt, lineAt, arriveAt, exitAt };
 };
 
-// Pill tints, as in the film: coral, blue, green, coral at low opacity over the card.
-export const TINTS = ["#FF5A1F", "#2443FF", "#14A34A", "#FF5A1F"] as const;
-export const TINT_ALPHA = 0.14;
-
 // Card internals at k = 1 (px at 1080 short side).
-export const CARD = { w: 660, pad: 40, header: 44, headerGap: 30, row: 72, rowGap: 18, timeCol: 92, label: 28, time: 24, radius: 26 } as const;
+export const CARD = { w: 660, pad: 40, header: 44, headerGap: 30, row: 72, rowGap: 18, timeCol: 92, label: 28, time: 24 } as const;
 const cardInnerH = () => CARD.pad * 2 + CARD.header + CARD.headerGap + CARD.row * 4 + CARD.rowGap * 3;
 
 // ---------- layout ----------
@@ -146,14 +154,20 @@ export const layoutFor = (width: number, height: number): ITLayout => {
 
 // ---------- helpers ----------
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
-export const isDark = (hex: string) => {
+const hexRgb = (hex: string): [number, number, number] => {
   const h = hex.replace("#", "");
   const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h.slice(0, 6), 16);
-  if (Number.isNaN(n)) return false;
-  const r = (n >> 16) & 255;
-  const g = (n >> 8) & 255;
-  const b = n & 255;
-  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.5;
+  if (Number.isNaN(n)) return [0, 0, 0];
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+export const isDark = (hex: string) => {
+  const [r, g, b] = hexRgb(hex);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.45;
+};
+const mixHex = (a: string, b: string, t: number) => {
+  const A = hexRgb(a);
+  const B = hexRgb(b);
+  return `#${A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, "0")).join("")}`;
 };
 export const lettersOf = (s: string) => {
   const chars = Array.from(s.replace(/\s+/g, ""));
@@ -187,66 +201,31 @@ const ClockMark: React.FC<{ size: number; color: string; hand: string }> = ({ si
 // ---------- component ----------
 export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => {
   const frame = useCurrentFrame();
-  const uid = React.useId().replace(/[^a-zA-Z0-9]/g, "");
   const { width, height, durationInFrames } = useLayout();
   const L = React.useMemo(() => layoutFor(width, height), [width, height]);
   const geo = React.useMemo(() => L.routes.map((pts) => { const cum = measure(pts); return { pts, cum, len: cum[cum.length - 1], d: toD(pts) }; }), [L]);
   const { u, k } = L;
 
-  const darkCanvas = isDark(p.background);
-  const darkCard = isDark(p.card);
-  const titleColor = darkCanvas ? "#FFFFFF" : "#0E0F12";
-  const subColor = darkCanvas ? alpha("#FFFFFF", 0.55) : "#7B7E87";
-  const lineColor = darkCanvas ? alpha("#FFFFFF", 0.3) : alpha("#0E0F12", 0.22);
-  const gridColor = darkCanvas ? alpha("#FFFFFF", 0.05) : alpha("#0E0F12", 0.045);
-  const ink = darkCard ? "#FFFFFF" : "#0E0F12";
-  const quiet = darkCard ? alpha("#FFFFFF", 0.55) : "#7B7E87";
-  const cardShadow = darkCanvas
-    ? `0 ${2 * u}px ${4 * u}px rgba(0,0,0,0.3), 0 ${30 * u}px ${70 * u}px rgba(0,0,0,0.45)`
-    : `0 ${1 * u}px ${2 * u}px rgba(0,0,0,0.04), 0 ${8 * u}px ${24 * u}px rgba(0,0,0,0.06)`;
-  const tileShadow = darkCanvas
-    ? `0 ${1 * u}px ${2 * u}px rgba(0,0,0,0.3), 0 ${12 * u}px ${28 * u}px rgba(0,0,0,0.35)`
-    : `0 ${1 * u}px ${2 * u}px rgba(0,0,0,0.04), 0 ${8 * u}px ${24 * u}px rgba(0,0,0,0.06)`;
-  const hair = 1.5 * u;
+  const dark = isDark(p.background);
+  const shadow = dark ? "none" : `0 ${u}px ${2 * u}px ${alpha(p.ink, 0.04)}, 0 ${8 * u}px ${24 * u}px ${alpha(p.ink, 0.06)}`;
+  const lineColor = alpha(p.ink, LINE_ALPHA);
+  const hair = STROKE.hair * u;
+  const border = `${u}px solid ${p.line}`;
 
-  const tm = timing(p.stagger);
-  const exitStart = Math.round(durationInFrames * TIMING.exitAt);
-  const out = 1 - progress(frame, exitStart, durationInFrames, "travel");
+  const tm = timing(p.stagger, durationInFrames);
+  const out = 1 - progress(frame, tm.exitAt, tm.exitAt + TIMING.exit, "exit");
   const arrived = [0, 1, 2, 3, 4, 5].filter((o) => frame >= tm.arriveAt(o)).length;
-  const counterOn = progress(frame, tm.arriveAt(0) - 4, tm.arriveAt(0) + 6, "enter") * out;
+  const counterOn = progress(frame, tm.arriveAt(0) - 4, tm.arriveAt(0) + 14, "enter") * out;
 
   const letters = lettersOf(p.tiles);
   const rows: [string, string][] = [[p.time1, p.label1], [p.time2, p.label2], [p.time3, p.label3], [p.time4, p.label4]];
-  const g = 64 * u;
 
   return (
     <AbsoluteFill style={{ background: p.background, fontFamily: FONT_SANS, overflow: "hidden" }}>
-      {/* faint grid, centred on the card, fading at top and bottom. One SVG path with a vertical gradient stroke:
-          CSS mask-image layers mis-composite in Chrome and aren't reliable in the exporter. */}
-      <svg width={width} height={height} style={{ position: "absolute", left: 0, top: 0 }} aria-hidden>
-        <defs>
-          <linearGradient id={`${uid}-grid`} x1="0" y1="0" x2="0" y2={height} gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor={gridColor} stopOpacity={0} />
-            <stop offset="0.22" stopColor={gridColor} />
-            <stop offset="0.78" stopColor={gridColor} />
-            <stop offset="1" stopColor={gridColor} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <path
-          d={[
-            ...Array.from({ length: Math.ceil(width / g) + 1 }, (_, i) => `M${(L.cx % g) + i * g - g} 0V${height}`),
-            ...Array.from({ length: Math.ceil(height / g) + 1 }, (_, i) => `M0 ${(L.cy % g) + i * g - g}H${width}`),
-          ].join("")}
-          stroke={`url(#${uid}-grid)`}
-          strokeWidth={1}
-          fill="none"
-        />
-      </svg>
-
       {/* title */}
       <div style={{ position: "absolute", left: 80 * u, right: 80 * u, top: L.titleTop, textAlign: "center" }}>
-        <div style={{ fontSize: L.titleSize, fontWeight: 500, letterSpacing: "-0.04em", lineHeight: 1.05, color: titleColor }}>{p.title}</div>
-        <div style={{ fontSize: L.subSize, fontWeight: 400, letterSpacing: "-0.005em", lineHeight: 1.35, color: subColor, marginTop: L.subGap }}>{p.subline}</div>
+        <div style={{ fontSize: L.titleSize, fontWeight: 400, letterSpacing: "-0.04em", lineHeight: 1.05, color: p.ink }}>{p.title}</div>
+        <div style={{ fontSize: L.subSize, fontWeight: 400, letterSpacing: "-0.005em", lineHeight: 1.35, color: p.ink2, marginTop: L.subGap }}>{p.subline}</div>
       </div>
 
       {/* connectors, under the card */}
@@ -255,9 +234,7 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
           const o = orderOf(i);
           const lp = progress(frame, tm.lineAt(o), tm.lineAt(o) + TIMING.draw, "travel");
           if (lp <= 0) return null;
-          return (
-            <path key={i} d={r.d} fill="none" stroke={lineColor} strokeWidth={hair} strokeLinejoin="round" strokeDasharray={`${r.len * lp} ${r.len + 2}`} opacity={out} />
-          );
+          return <path key={i} d={r.d} fill="none" stroke={lineColor} strokeWidth={hair} strokeLinejoin="round" strokeDasharray={`${r.len * lp} ${r.len + 2}`} opacity={out} />;
         })}
       </svg>
 
@@ -275,17 +252,17 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
               top: t.y - s / 2,
               width: s,
               height: s,
-              borderRadius: s * 0.26,
+              borderRadius: RADIUS.card * u,
               background: p.card,
-              border: `${hair}px solid ${p.border}`,
+              border,
               boxSizing: "border-box",
-              boxShadow: tileShadow,
+              boxShadow: shadow,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: ink,
+              color: p.ink,
               fontSize: s * 0.4,
-              fontWeight: 600,
+              fontWeight: 500,
               letterSpacing: "-0.03em",
               lineHeight: 1,
               opacity: clamp01(d * 1.6) * out,
@@ -305,31 +282,31 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
           top: L.cy - L.cardH / 2,
           width: L.cardW,
           height: L.cardH,
-          borderRadius: CARD.radius * k * u,
+          borderRadius: RADIUS.card * u,
           background: p.card,
-          border: `${hair}px solid ${p.border}`,
+          border,
           boxSizing: "border-box",
-          boxShadow: cardShadow,
-          padding: `${(CARD.pad * k * u) - hair}px`,
-          color: ink,
+          boxShadow: shadow,
+          padding: `${CARD.pad * k * u - u}px`,
+          color: p.ink,
         }}
       >
         <div style={{ height: CARD.header * k * u, display: "flex", alignItems: "center", gap: 12 * k * u }}>
           <ClockMark size={30 * k * u} color={p.accent} hand={p.card} />
-          <span style={{ fontSize: 30 * k * u, fontWeight: 600, letterSpacing: "-0.02em" }}>{p.heading}</span>
-          <span style={{ marginLeft: "auto", fontFamily: FONT_MONO, fontSize: 20 * k * u, color: quiet, opacity: counterOn }}>{arrived}/6 synced</span>
+          <span style={{ fontSize: 30 * k * u, fontWeight: 500, letterSpacing: "-0.02em" }}>{p.heading}</span>
+          <span style={{ marginLeft: "auto", fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums", fontSize: 20 * k * u, color: p.ink3, opacity: counterOn }}>{arrived}/6 synced</span>
         </div>
         <div style={{ marginTop: CARD.headerGap * k * u, display: "flex", flexDirection: "column", gap: CARD.rowGap * k * u }}>
           {rows.map(([time, label], r) => {
             const at = tm.arriveAt(ROW_AT[r]) + 2;
             const f = progress(frame, at, at + TIMING.fill, p.ease);
             const fc = clamp01(f);
-            const pillR = 14 * k * u;
+            const active = r === ACTIVE_ROW;
             return (
               <div key={r} style={{ display: "flex", alignItems: "center", gap: 20 * k * u, height: CARD.row * k * u }}>
-                <span style={{ width: CARD.timeCol * k * u, flexShrink: 0, textAlign: "right", fontFamily: FONT_MONO, fontSize: CARD.time * k * u, color: quiet, opacity: mix(0.4, 1, fc * out) }}>{time}</span>
-                <div style={{ position: "relative", flex: 1, height: "100%", borderRadius: pillR, background: alpha(ink, 0.04), overflow: "hidden" }}>
-                  <div style={{ position: "absolute", inset: 0, background: alpha(TINTS[r], TINT_ALPHA), clipPath: `inset(0 ${(1 - fc) * 100}% 0 0)`, opacity: out }} />
+                <span style={{ width: CARD.timeCol * k * u, flexShrink: 0, textAlign: "right", fontFamily: FONT_MONO, fontVariantNumeric: "tabular-nums", fontSize: CARD.time * k * u, color: mixHex(p.ink3, p.ink2, fc * out) }}>{time}</span>
+                <div style={{ position: "relative", flex: 1, height: "100%", boxSizing: "border-box", borderRadius: RADIUS.button * u, border, overflow: "hidden" }}>
+                  <div style={{ position: "absolute", inset: 0, background: active ? alpha(p.accent, ACTIVE_TINT) : p.fill, clipPath: `inset(0 ${(1 - fc) * 100}% 0 0)`, opacity: out }} />
                   <span
                     style={{
                       position: "absolute",
@@ -339,8 +316,9 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
                       display: "flex",
                       alignItems: "center",
                       fontSize: CARD.label * k * u,
-                      fontWeight: 600,
+                      fontWeight: 500,
                       letterSpacing: "-0.01em",
+                      color: p.ink,
                       whiteSpace: "nowrap",
                       opacity: clamp01((f - 0.25) / 0.75) * out,
                       transform: `translateX(${-(1 - f) * 10 * k * u}px)`,
@@ -367,15 +345,15 @@ export const IntegrationsTimeline: React.FC<IntegrationsTimelineProps> = (p) => 
           return (
             <g key={i}>
               {headOp > 0 ? <circle cx={head.x} cy={head.y} r={5 * u} fill={p.accent} opacity={headOp * out} /> : null}
-              {rp > 0 && rp < 1 ? <circle cx={port.x} cy={port.y} r={mix(7, 26, rp) * u} fill="none" stroke={p.accent} strokeWidth={hair} opacity={(1 - rp) * 0.6 * out} /> : null}
+              {rp > 0 && rp < 1 ? <circle cx={port.x} cy={port.y} r={mix(7, 26, rp) * u} fill="none" stroke={p.accent} strokeWidth={STROKE.ring * u} opacity={(1 - rp) * 0.6 * out} /> : null}
             </g>
           );
         })}
         {L.ports.map((pt, s) => {
-          const lit = progress(frame, tm.arriveAt(s), tm.arriveAt(s) + 8, "enter") * out;
+          const lit = progress(frame, tm.arriveAt(s), tm.arriveAt(s) + 18, "enter") * out;
           return (
             <g key={s}>
-              <circle cx={pt.x} cy={pt.y} r={6.5 * u} fill={p.card} stroke={darkCanvas ? alpha("#FFFFFF", 0.5) : alpha("#0E0F12", 0.3)} strokeWidth={hair} />
+              <circle cx={pt.x} cy={pt.y} r={6.5 * u} fill={p.card} stroke={alpha(p.ink, 0.3)} strokeWidth={hair} />
               <circle cx={pt.x} cy={pt.y} r={3.5 * u} fill={p.accent} opacity={lit} />
             </g>
           );
