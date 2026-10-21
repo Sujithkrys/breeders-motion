@@ -37,14 +37,22 @@ export const SAMPLE = {
   partner: "Relay",
   partnerIcon: "/templates/relay-icon.png", // 512 × 512 app icon (lime tile)
   avatar: "/templates/avatar-mj.png", // 512 × 512 round monogram for "Maya Jensen"
+  // More people (512 × 512 round monograms): Leo Tanaka, Ana Kovac, Ravi Shah, Dana Noor.
+  people: [
+    { name: "Leo Tanaka", photo: "/templates/avatar-lt.png" },
+    { name: "Ana Kovac", photo: "/templates/avatar-ak.png" },
+    { name: "Ravi Shah", photo: "/templates/avatar-rs.png" },
+    { name: "Dana Noor", photo: "/templates/avatar-dn.png" },
+  ],
 } as const;
 
 // Fictional customer logos (mark + wordmark, transparent PNG, ~3:1), in ink (#111) and white versions.
 export const CUSTOMER_LOGOS = ["northwind", "halcyon", "quanta", "fieldwork", "orbital", "parallel", "kite", "monolith", "sable", "arcadia"] as const;
 export const customerLogo = (name: (typeof CUSTOMER_LOGOS)[number], tone: "ink" | "white" = "ink") => `/templates/logos/${tone}/${name}.png`;
 
-// Templates run 6–10s at 30fps.
+// Templates run 6–10s at 30fps; long-form templates (product tours, explainers, announcements) run 15–20s.
 export const TEMPLATE_DURATIONS = [180, 210, 240, 270, 300] as const;
+export const LONG_TEMPLATE_DURATIONS = [450, 480, 510, 540, 570, 600] as const;
 // Default shot length: a cut every 1.5s reads as calm but alive (the Figma film cuts every 1–2s).
 export const SHOT = 45;
 

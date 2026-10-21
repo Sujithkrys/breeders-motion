@@ -180,7 +180,8 @@ Look frames: `E:/Breeders/out/Breeders-Templates-look-frames.png`. Toolkit: `src
 
 **Shape of a template**
 - `category: "templates"`, `ratios: ["16:9", "9:16"]` (16:9 first; it is the main film).
-- 180–300 frames at 30fps (6–10s), one of `TEMPLATE_DURATIONS`. Not a loop: it ends on the logo or title card,
+- 180–300 frames at 30fps (6–10s), one of `TEMPLATE_DURATIONS`; long-form templates (tours, explainers,
+  announcements) run 450–600 frames (15–20s), one of `LONG_TEMPLATE_DURATIONS`. Not a loop: it ends on the logo or title card,
   held still for the last `FINAL_HOLD` frames.
 - Shots are hard cuts at fixed frames (`useShot(starts)`, default `SHOT` = 45f). Motion inside a shot uses the kit
   curves; nothing drifts aimlessly. One idea per shot, readable in a still.
