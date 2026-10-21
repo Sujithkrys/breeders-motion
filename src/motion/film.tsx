@@ -28,12 +28,20 @@ export const CURSOR_COLORS = { pink: "#F24E9C", green: "#14AE5C", blue: "#0D99FF
 // Bundled sample brand. Image controls default to these; users replace them with their own uploads.
 export const SAMPLE = {
   brand: "Lumen",
-  logo: "/templates/lumen-logo.svg",
+  logo: "/templates/lumen-logo.svg", // black tile; `Logo` swaps in logoLight on dark backgrounds
+  logoLight: "/templates/lumen-logo-light.svg",
   site: "/templates/lumen-site.png", // 1440 × 900 landing page at 2x
   phone: "/templates/lumen-phone.png", // 390 × 844 phone screen at 3x
   appDark: "/templates/lumen-app-dark.png", // 1440 × 900 dark-mode app at 2x
   phoneDark: "/templates/lumen-phone-dark.png", // 390 × 844 dark-mode phone screen at 3x
+  partner: "Relay",
+  partnerIcon: "/templates/relay-icon.png", // 512 × 512 app icon (lime tile)
+  avatar: "/templates/avatar-mj.png", // 512 × 512 round monogram for "Maya Jensen"
 } as const;
+
+// Fictional customer logos (mark + wordmark, transparent PNG, ~3:1), in ink (#111) and white versions.
+export const CUSTOMER_LOGOS = ["northwind", "halcyon", "quanta", "fieldwork", "orbital", "parallel", "kite", "monolith", "sable", "arcadia"] as const;
+export const customerLogo = (name: (typeof CUSTOMER_LOGOS)[number], tone: "ink" | "white" = "ink") => `/templates/logos/${tone}/${name}.png`;
 
 // Templates run 6–10s at 30fps.
 export const TEMPLATE_DURATIONS = [180, 210, 240, 270, 300] as const;
@@ -212,6 +220,16 @@ export const SelectionBox: React.FC<{ u: number; x: number; y: number; w: number
 
 // ---- Logo slot: the uploaded mark at `size` px tall, followed by the brand name. Without an image, a tile with the
 // brand's initial stands in, so the slot never renders empty.
+// The sample logo is a black tile, which vanishes on dark fields. Light type (`color`) means a dark field, so the
+// sample swaps to its white-tile version there. Uploaded logos are never changed.
+const isLight = (hex: string) => {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h.slice(0, 6), 16);
+  if (Number.isNaN(n)) return false;
+  return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255 > 0.6;
+};
+const sampleLogoFor = (src: string, color: string) => (src === SAMPLE.logo && isLight(color) ? SAMPLE.logoLight : src);
+
 export const Logo: React.FC<{ src?: string; name?: string; size: number; color: string; tile?: string; onTile?: string; showName?: boolean }> = ({
   src,
   name = "",
@@ -223,7 +241,7 @@ export const Logo: React.FC<{ src?: string; name?: string; size: number; color: 
 }) => (
   <div style={{ display: "flex", alignItems: "center", gap: size * 0.32, fontFamily: FONT_SANS, color }}>
     {src ? (
-      <Img src={src} style={{ height: size, width: "auto", display: "block" }} />
+      <Img src={sampleLogoFor(src, color)} style={{ height: size, width: "auto", display: "block" }} />
     ) : (
       <div
         style={{

@@ -25,8 +25,14 @@ import { batch as tplD } from "./batches/templates-d";
 import { batch as tplE } from "./batches/templates-e";
 import { batch as tplF } from "./batches/templates-f";
 import { batch as tplG } from "./batches/templates-g";
+import { batch as tplH } from "./batches/templates-h";
+import { batch as tplI } from "./batches/templates-i";
+import { batch as tplJ } from "./batches/templates-j";
+import { batch as tplK } from "./batches/templates-k";
+import { batch as tplL } from "./batches/templates-l";
+import { batch as tplM } from "./batches/templates-m";
 
-export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC, ...tplA, ...tplB, ...tplC, ...tplD, ...tplE, ...tplF, ...tplG].sort((a, b) =>
+export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC, ...tplA, ...tplB, ...tplC, ...tplD, ...tplE, ...tplF, ...tplG, ...tplH, ...tplI, ...tplJ, ...tplK, ...tplL, ...tplM].sort((a, b) =>
   b.addedAt.localeCompare(a.addedAt),
 );
 
