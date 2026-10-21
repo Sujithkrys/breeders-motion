@@ -1,13 +1,13 @@
 // In-browser rendering for the Export tab. Every function runs on the visitor's device: MP4 and WebM go through
 // renderMediaOnWeb (WebCodecs); GIF and PNG sequences render one still per frame and encode them here.
 // Import this module dynamically from client code: it pulls in the renderer and both encoders.
-import { createElement, type ComponentType } from "react";
-import { AbsoluteFill } from "remotion";
+import type { ComponentType } from "react";
 import { canRenderMediaOnWeb, renderMediaOnWeb, renderStillOnWeb, type CanRenderIssue, type WebRendererContainer, type WebRendererVideoCodec } from "@remotion/web-renderer";
 import { Zip, ZipPassThrough } from "fflate";
 import { GIFEncoder, applyPalette, quantize } from "gifenc";
 import { RATIO_SIZE, type AnyMotionDef, type MotionProps, type Ratio } from "@/motion/types";
 import { ensureExportFonts } from "./fonts";
+import { withMatte } from "./matte";
 import type { ExportFormat, GifFps } from "./formats";
 
 export type ProgressCallback = (fraction: number) => void;
@@ -25,19 +25,6 @@ const VIDEO_BITRATE = "high" as const;
 const VIDEO_SETTINGS: Record<"mp4" | "webm", { container: WebRendererContainer; videoCodec: WebRendererVideoCodec }> = {
   mp4: { container: "mp4", videoCodec: "h264" },
   webm: { container: "webm", videoCodec: "vp9" },
-};
-
-// Formats without alpha get an opaque black matte under the component. A colour with opacity on the root would
-// otherwise leave see-through pixels, which the encoder flattens to black anyway, but on a path ~15x slower.
-// The player draws the same black behind compositions, so the preview matches.
-const matted = new WeakMap<ComponentType<MotionProps>, ComponentType<MotionProps>>();
-const withMatte = (component: ComponentType<MotionProps>) => {
-  let m = matted.get(component);
-  if (!m) {
-    m = (props: MotionProps) => createElement(AbsoluteFill, { style: { background: "#000000" } }, createElement(component, props));
-    matted.set(component, m);
-  }
-  return m;
 };
 
 const compositionFor = (def: AnyMotionDef, ratio: Ratio, opaque: boolean) => {
