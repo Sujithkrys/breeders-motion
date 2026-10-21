@@ -194,7 +194,7 @@ export function PlacementControl({ id, control, value, fallback, src, onChange }
           </div>
         )}
       </div>
-      <p id={`${id}-help`} className="font-mono text-[11px] text-ink-3">
+      <p id={`${id}-help`} className="relative font-mono text-[11px] text-ink-3">
         <span className="sr-only">
           {isArea ? "Drag to move, drag a corner to resize, or draw a new box on the image. Arrow keys nudge. " : "Drag the cursor, or click the image to place it. Arrow keys nudge. "}
         </span>

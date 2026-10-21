@@ -80,7 +80,9 @@ export function ImageControl({ id, control, value, fallback, onChange }: ImageCo
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    // `relative` keeps the visually hidden file input inside this field: without a positioned ancestor it sits at
+    // its static spot far down the panel and makes the whole page scrollable.
+    <div className="relative flex min-w-0 flex-col gap-1.5">
       <label htmlFor={id} className={FIELD_LABEL}>
         {control.label}
       </label>
@@ -101,11 +103,14 @@ export function ImageControl({ id, control, value, fallback, onChange }: ImageCo
           {value && <img src={value} alt="" className="size-full object-contain" />}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] text-ink">{isOwn ? (name ?? "Your image") : "Sample"}</p>
+          <p className={cx("truncate text-[13px]", value ? "text-ink" : "text-ink-2")}>{isOwn ? (name ?? "Your image") : value ? "Sample" : "No image"}</p>
           <p className={cx("truncate text-[11px]", error ? "text-red-500" : "text-ink-3")}>{error ?? control.hint ?? "Drop a file or upload"}</p>
         </div>
         {isOwn && (
-          <button type="button" aria-label={`Use the sample ${control.label.toLowerCase()}`} onClick={() => onChange(fallback)} className={cx(GHOST_BUTTON, "w-[34px] justify-center px-0")}>
+          <button
+            type="button"
+            aria-label={fallback ? `Use the sample ${control.label.toLowerCase()}` : `Remove ${control.label.toLowerCase()}`}
+            onClick={() => onChange(fallback)} className={cx(GHOST_BUTTON, "w-[34px] justify-center px-0")}>
             <X size={14} aria-hidden />
           </button>
         )}

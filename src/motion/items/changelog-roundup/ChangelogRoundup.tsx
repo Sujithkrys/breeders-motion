@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, Img } from "remotion";
 import { FILM, Logo, useShot } from "../../film";
 import { CANVAS, FONT_MONO, FONT_SANS, RADIUS, STAGGER, STROKE, alpha, mix, progress, useLayout } from "../../kit";
 
@@ -18,6 +18,10 @@ export type ChangelogRoundupProps = {
   visual2: string;
   visual3: string;
   visual4: string;
+  image1: string; // optional picture for card 1 ("" = none); replaces the mini interface
+  image2: string;
+  image3: string;
+  image4: string;
   brand: string;
   logo: string;
   field: string; // shots 2 and 3 (the opener is always black)
@@ -105,6 +109,8 @@ export const SHADOW = "0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)";
 export const VIS_BOX = { w: 720, h: 260 } as const;
 export const VIS_FILL = 0.9;
 export const VIS_MIN_TEXT = 18;
+// An uploaded card image replaces the mini interface and pushes in 1 → 1 + IMAGE_PUSH, linear over the card's window.
+export const IMAGE_PUSH = 0.03;
 export const visScale = (tall: boolean) => {
   const C = (tall ? SIZE.tall : SIZE.wide).card;
   const pw = C.w - 2 * C.inset;
@@ -180,10 +186,10 @@ export const geometry = (Wf: number, Hf: number, tall: boolean) => {
 };
 
 export const updatesOf = (p: ChangelogRoundupProps) => [
-  { title: p.update1, detail: p.detail1, visual: visualOf(p.visual1) },
-  { title: p.update2, detail: p.detail2, visual: visualOf(p.visual2) },
-  { title: p.update3, detail: p.detail3, visual: visualOf(p.visual3) },
-  { title: p.update4, detail: p.detail4, visual: visualOf(p.visual4) },
+  { title: p.update1, detail: p.detail1, visual: visualOf(p.visual1), image: (p.image1 || "").trim() },
+  { title: p.update2, detail: p.detail2, visual: visualOf(p.visual2), image: (p.image2 || "").trim() },
+  { title: p.update3, detail: p.detail3, visual: visualOf(p.visual3), image: (p.image3 || "").trim() },
+  { title: p.update4, detail: p.detail4, visual: visualOf(p.visual4), image: (p.image4 || "").trim() },
 ];
 
 // ---------- word-mask rise ----------
@@ -666,13 +672,14 @@ const UpdateCard: React.FC<{
   title: string;
   detail: string;
   visual: Visual;
+  image: string; // non-empty: the user's picture fills the panel instead of the mini interface
   accent: string;
   u: number;
   tall: boolean;
   compact: number;
   local: number; // frames since the card started entering
   vt: number; // frames since the card's window started (drives its mini interface)
-}> = ({ n, title, detail, visual, accent, u, tall, compact, local, vt }) => {
+}> = ({ n, title, detail, visual, image, accent, u, tall, compact, local, vt }) => {
   const C = (tall ? SIZE.tall : SIZE.wide).card;
   const inner = C.w - 2 * C.pad;
   const tSize = fitSize(title, inner, C.title);
@@ -735,9 +742,26 @@ const UpdateCard: React.FC<{
           overflow: "hidden",
         }}
       >
-        <div style={{ position: "absolute", left: (pw * u - VIS_BOX.w * q) / 2, top: (ph * u - VIS_BOX.h * q) / 2, width: VIS_BOX.w * q, height: VIS_BOX.h * q }}>
-          <Vis q={q} t={vt} accent={accent} label={title} />
-        </div>
+        {image ? (
+          <>
+            {/* width-fitted, cropped from the top (no object-position), pushing in from the top edge */}
+            <Img
+              src={image}
+              style={{
+                display: "block",
+                width: "100%",
+                height: "auto",
+                transformOrigin: "50% 0%",
+                transform: `scale(${(1 + IMAGE_PUSH * Math.min(1, Math.max(0, vt / CARD.len))).toFixed(5)})`,
+              }}
+            />
+            <div style={{ position: "absolute", inset: 0, borderRadius: RADIUS.button * u, boxShadow: `inset 0 0 0 ${STROKE.hair * u}px ${alpha(FILM.black, 0.08)}` }} />
+          </>
+        ) : (
+          <div style={{ position: "absolute", left: (pw * u - VIS_BOX.w * q) / 2, top: (ph * u - VIS_BOX.h * q) / 2, width: VIS_BOX.w * q, height: VIS_BOX.h * q }}>
+            <Vis q={q} t={vt} accent={accent} label={title} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -934,6 +958,7 @@ export const ChangelogRoundup: React.FC<ChangelogRoundupProps> = (p) => {
               title={d.title}
               detail={d.detail}
               visual={d.visual}
+              image={d.image}
               accent={p.accent}
               u={u}
               tall={tall}

@@ -77,7 +77,7 @@ function ComponentDetail({ def }: { def: AnyMotionDef }) {
         onPropChange={setProp}
         onPaletteApply={applyPalette}
         onReset={reset}
-        className="w-full border-t border-line min-[1100px]:w-[400px] min-[1100px]:shrink-0 min-[1100px]:overflow-y-auto min-[1100px]:border-t-0 min-[1100px]:border-l"
+        className="w-full border-t border-line min-[1100px]:w-[400px] min-[1100px]:shrink-0 min-[1100px]:overflow-y-auto min-[1100px]:overscroll-contain min-[1100px]:border-t-0 min-[1100px]:border-l"
       />
       <CommandMenu />
     </div>
