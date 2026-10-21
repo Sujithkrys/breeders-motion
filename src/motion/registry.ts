@@ -38,8 +38,14 @@ import { batch as tplQ } from "./batches/templates-q";
 import { batch as tplR } from "./batches/templates-r";
 import { batch as tplS } from "./batches/templates-s";
 import { batch as tplT } from "./batches/templates-t";
+import { batch as v3A } from "./batches/v3-a";
+import { batch as v3B } from "./batches/v3-b";
+import { batch as v3C } from "./batches/v3-c";
+import { batch as v3D } from "./batches/v3-d";
+import { batch as v3E } from "./batches/v3-e";
+import { batch as v3F } from "./batches/v3-f";
 
-export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC, ...tplA, ...tplB, ...tplC, ...tplD, ...tplE, ...tplF, ...tplG, ...tplH, ...tplI, ...tplJ, ...tplK, ...tplL, ...tplM, ...tplN, ...tplO, ...tplP, ...tplQ, ...tplR, ...tplS, ...tplT].sort((a, b) =>
+export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC, ...tplA, ...tplB, ...tplC, ...tplD, ...tplE, ...tplF, ...tplG, ...tplH, ...tplI, ...tplJ, ...tplK, ...tplL, ...tplM, ...tplN, ...tplO, ...tplP, ...tplQ, ...tplR, ...tplS, ...tplT, ...v3A, ...v3B, ...v3C, ...v3D, ...v3E, ...v3F].sort((a, b) =>
   b.addedAt.localeCompare(a.addedAt),
 );
 
