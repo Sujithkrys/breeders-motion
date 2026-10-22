@@ -44,8 +44,14 @@ import { batch as v3C } from "./batches/v3-c";
 import { batch as v3D } from "./batches/v3-d";
 import { batch as v3E } from "./batches/v3-e";
 import { batch as v3F } from "./batches/v3-f";
+import { batch as logoA } from "./batches/logo-a";
+import { batch as logoB } from "./batches/logo-b";
+import { batch as logoC } from "./batches/logo-c";
+import { batch as logoD } from "./batches/logo-d";
+import { batch as logoE } from "./batches/logo-e";
+import { batch as logoF } from "./batches/logo-f";
 
-export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC, ...tplA, ...tplB, ...tplC, ...tplD, ...tplE, ...tplF, ...tplG, ...tplH, ...tplI, ...tplJ, ...tplK, ...tplL, ...tplM, ...tplN, ...tplO, ...tplP, ...tplQ, ...tplR, ...tplS, ...tplT, ...v3A, ...v3B, ...v3C, ...v3D, ...v3E, ...v3F].sort((a, b) =>
+export const MOTIONS: AnyMotionDef[] = [...core, ...text, ...logo, ...uiA, ...uiB, ...charts, ...three, ...transitions, ...v2a, ...v2b, ...v2c, ...v2d, ...v2e, ...v2f, ...newA, ...newB, ...newC, ...tplA, ...tplB, ...tplC, ...tplD, ...tplE, ...tplF, ...tplG, ...tplH, ...tplI, ...tplJ, ...tplK, ...tplL, ...tplM, ...tplN, ...tplO, ...tplP, ...tplQ, ...tplR, ...tplS, ...tplT, ...v3A, ...v3B, ...v3C, ...v3D, ...v3E, ...v3F, ...logoA, ...logoB, ...logoC, ...logoD, ...logoE, ...logoF].sort((a, b) =>
   b.addedAt.localeCompare(a.addedAt),
 );
 

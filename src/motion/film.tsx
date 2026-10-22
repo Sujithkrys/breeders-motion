@@ -236,7 +236,7 @@ const isLight = (hex: string) => {
   if (Number.isNaN(n)) return false;
   return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255 > 0.6;
 };
-const sampleLogoFor = (src: string, color: string) => (src === SAMPLE.logo && isLight(color) ? SAMPLE.logoLight : src);
+export const sampleLogoFor = (src: string, color: string) => (src === SAMPLE.logo && isLight(color) ? SAMPLE.logoLight : src);
 
 export const Logo: React.FC<{ src?: string; name?: string; size: number; color: string; tile?: string; onTile?: string; showName?: boolean }> = ({
   src,

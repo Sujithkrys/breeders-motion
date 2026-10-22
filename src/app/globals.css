@@ -132,3 +132,13 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Tailwind's preflight caps every <img> at max-width: 100%. Motion components size images on purpose (a logo
+   slice is an oversized copy offset inside a small clipping box), and they render inside this page in both the
+   player and the browser exporter, so the cap would silently shrink them. Images in the site UI set their own
+   sizes, so lifting the cap is safe. */
+@layer base {
+  img {
+    max-width: none;
+  }
+}
